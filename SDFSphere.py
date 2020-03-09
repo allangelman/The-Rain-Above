@@ -5,13 +5,12 @@ import numpy as np
 from mpm_solver import MPMSolver
 
 ti.require_version(0, 5, 7)
-ti.init(arch=ti.x64) # Run on GPU by default
+ti.init(arch=ti.x64)
 
 n = 320
 m = 20
 # pixels = ti.var(dt=ti.f32, shape=(n * 2, n))
 pixels = ti.Vector(4, dt=ti.f32, shape=(n, n))
-# particles = ti.Vector(3, dt=ti.f32, shape=(s_x,s_y))
 
 MAX_STEPS = 100
 MAX_DIST = 100.0
