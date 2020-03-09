@@ -4,7 +4,8 @@ import taichi as ti
 import numpy as np
 from mpm_solver import MPMSolver
 
-ti.cfg.arch = ti.cuda # Run on GPU by default
+ti.require_version(0, 5, 7)
+ti.init(arch=ti.x64)
 
 n = 320
 m = 20
@@ -24,20 +25,11 @@ mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
 s_x = np.size(np_x, 0)
 s_y = np.size(np_x, 1)
-particles = ti.Vector(3, dt=ti.f32, shape=(s_x,s_y))
 # # particles = ti.Vector(4, dt=ti.f32, shape=(n, n))
 
 @ti.func
 def complex_sqr(z):
   return ti.Vector([z[0] * z[0] - z[1] * z[1], z[1] * z[0] * 2])
-
-#matrix cross
-@ti.func
-def cross(a, b):
-  x = a[1]*b[2] - a[2]*b[1]
-  y = a[2]*b[0] - a[0]*b[2]
-  z = a[0]*b[1] - a[1]*b[0]
-  return ti.Vector([x, y, z])
 
 @ti.func
 def length(a):
@@ -48,7 +40,7 @@ def length(a):
 
 @ti.func
 def DistLine(ro, rd, p):
-  c =  cross(p-ro, rd)
+  c = ti.cross(p-ro, rd)
   l_c = length(c)
   l_rd = length(rd)
   return l_c/l_rd
@@ -187,7 +179,7 @@ for frame in range(1000000):
   mpm.step(4e-3)
   # colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
   np_x, np_v, np_material = mpm.particle_info()
-  part_x =  np_x.item((20,0))
+  part_x = np_x.item((20,0))
   part_y = np_x.item((20,1))
   part_z = np_x.item((20,2))
   # part = ti.Vector([np_x.item((0,0)), np_x.item((0,1)), np_x.item((0,2))])
