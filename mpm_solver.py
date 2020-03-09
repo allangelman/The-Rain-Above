@@ -2,8 +2,7 @@ import taichi as ti
 import random
 import numpy as np
 
-ti.require_version(0, 3, 24)
-
+@ti.data_oriented
 class MPMSolver:
   material_water = 0
   material_elastic = 1
@@ -48,9 +47,7 @@ class MPMSolver:
     # Lame parameters
     self.mu_0, self.lambda_0 = self.E / (2 * (1 + self.nu)), self.E * self.nu / ((1 + self.nu) * (1 - 2 * self.nu))
 
-    @ti.layout
-    def place():
-      ti.root.dynamic(ti.i, max_num_particles, 8192).place(self.x, self.v, self.C, self.F, self.material, self.Jp)
+    ti.root.dynamic(ti.i, max_num_particles, 8192).place(self.x, self.v, self.C, self.F, self.material, self.Jp)
       
     if self.dim == 2:
       self.set_gravity((0, -9.8))
