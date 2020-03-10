@@ -63,12 +63,35 @@ def GetDist(p, t, part_x, part_y, part_z):
   sphereDist = length(dist) - s[3]
   planeDist = p[1]
   
-  particle = ti.Vector([ part_x, part_y, part_z, 0.1 ])
-  p_dist = p-xyz(particle)
-  particleDist = length(p_dist) - particle[3]
-  
-  d = min(planeDist, sphereDist, particleDist)
+  # particle = ti.Vector([ part_x, part_y, part_z, 0.1 ])
+  # pos = mpm.x[10]
+  # particle = ti.Vector([ pos[0], pos[1], pos[2], 0.1 ])
+  # p_dist = p-xyz(particle)
+  # particleDist = length(p_dist) - particle[3]
+
+  min_particle_dist = 100000000.0
+  pa = 0
+  while pa < 10:
+  # for pa in mpm.x:
+    # print(pa)
+    # if pa < 10:
+    pos = mpm.x[pa]
+    particle = ti.Vector([ pos[0], pos[1], pos[2], 0.1 ])
+    p_dist = p-xyz(particle)
+    particleDist = length(p_dist) - particle[3]
+    if particleDist<min_particle_dist:
+      min_particle_dist = particleDist
+    # else:
+    #   break
+    pa = pa + 1
+
+  d = min(planeDist, sphereDist, min_particle_dist)
   return d
+
+
+  #make ray casting function
+    #raymarch call --> sdf
+    #ray-sphere intersection call (take closest intersection) --> particles
 
 @ti.func   
 def RayMarch(ro, rd, t, part_x, part_y, part_z):
