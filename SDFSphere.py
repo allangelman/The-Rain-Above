@@ -71,7 +71,8 @@ def GetDist(p, t, part_x, part_y, part_z):
 
   min_particle_dist = 100000000.0
   pa = 0
-  while pa < 10:
+  num_particles = ti.length(mpm.x(0).parent(), 0)
+  while pa < num_particles:
   # for pa in mpm.x:
     # print(pa)
     # if pa < 10:
