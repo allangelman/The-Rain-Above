@@ -3,6 +3,8 @@
 import taichi as ti
 import numpy as np
 from mpm_solver import MPMSolver
+from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
+  intersect_sphere, sphere_aabb_intersect_motion, inside_taichi
 
 ti.require_version(0, 5, 7)
 ti.init(arch=ti.x64)
@@ -16,11 +18,17 @@ MAX_STEPS = 100
 MAX_DIST = 100.0
 SURF_DIST = 0.01
 
+bbox = ti.Vector(3, dt=ti.f32, shape=2)
+particle_grid_res = 256
 mpm = MPMSolver(res=(64, 64, 64), size=10)
 
 mpm.add_cube(lower_corner=[0, 7, 6], cube_size=[3, 1, 0.5], material=MPMSolver.material_water)
 
 mpm.set_gravity((0, -50, 0))
+num_particles = ti.length(mpm.x(0).parent(), 0)
+
+inv_dx = 256.0
+dx = 1.0 / inv_dx
 
 np_x, np_v, np_material = mpm.particle_info()
 s_x = np.size(np_x, 0)
@@ -57,7 +65,7 @@ def xyz(a):
 #     return b
 
 @ti.func
-def GetDist(p, t, part_x, part_y, part_z):
+def GetDist(p, t):
   s = ti.Vector([ 0.0, 1.0, 6.0, 5.0**0.5 ])
   dist = p-xyz(s)
   sphereDist = length(dist) - s[3]
@@ -71,8 +79,8 @@ def GetDist(p, t, part_x, part_y, part_z):
 
   min_particle_dist = 100000000.0
   pa = 0
-  num_particles = ti.length(mpm.x(0).parent(), 0)
-  while pa < num_particles:
+#   num_particles = ti.length(mpm.x(0).parent(), 0)
+  while pa < 10:
   # for pa in mpm.x:
     # print(pa)
     # if pa < 10:
@@ -90,22 +98,150 @@ def GetDist(p, t, part_x, part_y, part_z):
   return d
 
 
+#   bbox_min = bbox[0]
+#   bbox_max = bbox[1]
+
+#   hit_pos = ti.Vector([0.0, 0.0, 0.0])
+#   normal = ti.Vector([0.0, 0.0, 0.0])
+#   c = ti.Vector([0.0, 0.0, 0.0])
+#   for i in ti.static(range(3)):
+#     if abs(d[i]) < 1e-6:
+#       d[i] = 1e-6
+
+#   inter, near, far = ray_aabb_intersection(bbox_min, bbox_max, eye_pos, d)
+#   near = max(0, near)
+
+#   closest_intersection = inf
+#   return 0
+
+@ti.func
+def inside_particle_grid(ipos):
+    pos = ipos * dx
+    return bbox[0][0] <= pos[0] and pos[0] < bbox[1][0] and bbox[0][1] <= pos[
+        1] and pos[1] < bbox[1][1] and bbox[0][2] <= pos[2] and pos[2] < bbox[
+            1][2]
+
+@ti.func
+def dda_particle(eye_pos, d, t):
+
+	grid_res = particle_grid_res
+
+    # bounding box
+    bbox_min = bbox[0]
+    bbox_max = bbox[1]
+
+    hit_pos = ti.Vector([0.0, 0.0, 0.0])
+    normal = ti.Vector([0.0, 0.0, 0.0])
+    c = ti.Vector([0.0, 0.0, 0.0])
+    for i in ti.static(range(3)):
+        if abs(d[i]) < 1e-6:
+            d[i] = 1e-6
+
+    inter, near, far = ray_aabb_intersection(bbox_min, bbox_max, eye_pos, d)
+    near = max(0, near)
+
+    closest_intersection = inf
+
+	for k in range(num_particles):
+		pos = mpm.x[k]
+    	particle = ti.Vector([ pos[0], pos[1], pos[2], 0.1 ])
+		p = pid[ipos[0], ipos[1], ipos[2], k]
+		v = particle_v[p]
+		x = particle_x[p] + t * v
+		color = particle_color[p]
+		# ray-sphere intersection
+		dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
+		hit_pos = poss
+		if dist < closest_intersection and dist > 0:
+			hit_pos = eye_pos + dist * d
+			closest_intersection = dist
+			normal = ti.Matrix.normalized(hit_pos - x)
+			c = color
+	
+	return closest_intersection, normal, c
+
+    # if inter:
+    #     pos = eye_pos + d * (near + eps)
+
+    #     rinv = 1.0 / d
+    #     rsign = ti.Vector([0, 0, 0])
+    #     for i in ti.static(range(3)):
+    #         if d[i] > 0:
+    #             rsign[i] = 1
+    #         else:
+    #             rsign[i] = -1
+
+    #     o = grid_res * pos
+    #     ipos = ti.Matrix.floor(o).cast(int)
+    #     dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
+    #     running = 1
+    #     # DDA for voxels with at least one particle
+    #     while running:
+    #         inside = inside_particle_grid(ipos)
+
+    #         if inside:
+    #             # once we actually intersect with a voxel that contains at least one particle, loop over the particle list
+    #             # num_particles = voxel_has_particle[ipos]
+    #             if num_particles != 0:
+    #                 num_particles = ti.length(pid.parent(), ipos)
+    #             for k in range(num_particles):
+    #                 p = pid[ipos[0], ipos[1], ipos[2], k]
+    #                 v = particle_v[p]
+    #                 x = particle_x[p] + t * v
+    #                 color = particle_color[p]
+    #                 # ray-sphere intersection
+    #                 dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
+    #                 hit_pos = poss
+    #                 if dist < closest_intersection and dist > 0:
+    #                     hit_pos = eye_pos + dist * d
+    #                     closest_intersection = dist
+    #                     normal = ti.Matrix.normalized(hit_pos - x)
+    #                     c = color
+    #         else:
+    #             running = 0
+    #             normal = [0, 0, 0]
+
+    #         if closest_intersection < inf:
+    #             running = 0
+    #         else:
+    #             # hits nothing. Continue ray marching
+    #             mm = ti.Vector([0, 0, 0])
+    #             if dis[0] <= dis[1] and dis[0] <= dis[2]:
+    #                 mm[0] = 1
+    #             elif dis[1] <= dis[0] and dis[1] <= dis[2]:
+    #                 mm[1] = 1
+    #             else:
+    #                 mm[2] = 1
+    #             dis += mm * rsign * rinv
+    #             ipos += mm * rsign
+
+    # return closest_intersection, normal, c
+
+	
   #make ray casting function
     #raymarch call --> sdf
     #ray-sphere intersection call (take closest intersection) --> particles
 
 @ti.func   
-def RayMarch(ro, rd, t, part_x, part_y, part_z):
+def RayMarch(ro, rd, t):
   dO = 0.0
   i = 0 
   while i < MAX_STEPS:
     p = ro + rd*dO
-    dS = GetDist(p, t, part_x, part_y, part_z)
+    dS = GetDist(p, t)
     dO += dS
     if dO > MAX_DIST or dS < SURF_DIST:
       break
     i = i + 1
   return dO
+
+
+@ti.func
+def rayCast(eye_pos, d, t):
+	sdf_dis = RayMarch(eye_pos, d, t)
+	particle_dis, normal, c = dda_particle(eye_pos, d, t)
+
+	return min(sdf_dis, particle_dis)
 
 @ti.func   
 def normalize(p):
@@ -113,14 +249,14 @@ def normalize(p):
 
 
 @ti.func   
-def GetNormal(p, t, part_x, part_y, part_z):
-  d = GetDist(p, t, part_x, part_y, part_z)
+def GetNormal(p, t):
+  d = GetDist(p, t)
   e1 = ti.Vector([0.01, 0.0, 0.0])
   e2 = ti.Vector([0.0, 0.01, 0.0])
   e3 = ti.Vector([0.0, 0.0, 0.01])
-  x = GetDist(p-e1, t, part_x, part_y, part_z)
-  y = GetDist(p-e2, t, part_x, part_y, part_z)
-  z = GetDist(p-e3, t, part_x, part_y, part_z)
+  x = GetDist(p-e1, t)
+  y = GetDist(p-e2, t)
+  z = GetDist(p-e3, t)
   n = ti.Vector([d-x,d-y,d-z])
   return normalize(n)
 
@@ -137,13 +273,13 @@ def clamp(p):
 # def dot(a,b):
 
 @ti.func   
-def GetLight(p, t, part_x, part_y, part_z):
+def GetLight(p, t):
   lightPos = ti.Vector([ 0.0 + ti.sin(t), 5.0, 6.0 + ti.cos(t) ])
 
   l = normalize(lightPos - p)
-  n = GetNormal(p, t, part_x, part_y, part_z)
+  n = GetNormal(p, t)
   diff = clamp(ti.dot(n,l))
-  d = RayMarch(p + n*SURF_DIST*2.0, l, t, part_x, part_y, part_z)
+  d = RayMarch(p + n*SURF_DIST*2.0, l, t)
   if (d < length(lightPos - p)):
     diff = diff* 0.1
 
@@ -157,7 +293,7 @@ def GetLight(p, t, part_x, part_y, part_z):
 #   return 0
 
 @ti.kernel
-def paint(t: ti.f32, part_x: ti.f32, part_y: ti.f32, part_z: ti.f32, np_x: ti.ext_arr()):
+def paint(t: ti.f32):
   
   # particles = ti.Vector(3, dt=ti.f32, shape=size)
   # for a, b in particles:
@@ -185,10 +321,10 @@ def paint(t: ti.f32, part_x: ti.f32, part_y: ti.f32, part_z: ti.f32, np_x: ti.ex
     
     # particles = ti.Vector(ti.f32)
     # particles.from_numpy(np_x)
-    d = RayMarch(ro, rd, t, part_x, part_y, part_z)
+    d = RayMarch(ro, rd, t)
     # test = np_x[20,0]
     p = ro +rd*d
-    diff = GetLight(p, t, part_x, part_y, part_z)
+    diff = GetLight(p, t)
     # d = d/6.0
 
     # pixels[i, j] = ti.Vector([diff[0],diff[1],diff[2],1.0]) 
@@ -219,7 +355,7 @@ for frame in range(1000000):
   # mat_int = mat.cast(int)
   # mat_int2 = mat.cast(ti.i32)
   # size = np_x.size
-  paint(frame * 0.03, part_x, part_y, part_z, np_x)
+  paint(frame * 0.03)
   gui.set_image(pixels)
   # gui.circle([0 / 10, 1 / 10], radius=20, color=0xFF0000)
   # gui.circles(screen_pos, radius=1.5, color=colors[np_material])
