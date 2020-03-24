@@ -195,7 +195,7 @@ def dda_particle(eye_pos, d, t):
     # x = particle_x[p] + t * v
     # color = particle_color[p]
     # ray-sphere intersection
-    dist, poss = intersect_sphere(eye_pos, d, x, 0.001)
+    dist, poss = intersect_sphere(eye_pos, d, x, 0.1)
     hit_pos = poss  
     if dist < closest_intersection and dist > 0:
       hit_pos = eye_pos + dist * d
@@ -364,8 +364,8 @@ def paint(t: ti.f32):
 
     uv = ti.Vector([ ((i/640)-0.5)*(2)  , (j/320) -0.5])
 
-    ro = ti.Vector([ 0.0, 1.0, 0.0 ])
-    rd = ti.Vector([ uv[0], uv[1], 1.0 ]) 
+    ro = ti.Vector([ 0.0, 1.0, -10.0 ])
+    rd = ti.normalized(ti.Vector([ uv[0], uv[1], 1.0 ]))
     
     # particles = ti.Vector(ti.f32)
     # particles.from_numpy(np_x)
@@ -385,7 +385,7 @@ gui = ti.GUI("Fractl", (n*2 , n))
 
 for frame in range(1000000):
 
-  mpm.step(4e-3)
+  mpm.step(3e-2, frame * 0.03)
   # colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
   np_x, np_v, np_material = mpm.particle_info()
   part_x = np_x.item((20,0))

@@ -12,7 +12,7 @@ class MPMSolver:
     self.dim = len(res)
     assert self.dim in (2, 3), "MPM solver supports only 2D and 3D simulations."
     self.res = res
-    self.n_particles = 0
+    self.n_particles = 0 #python value ... it would be 0 for taichi kernel
     self.dx = size / res[0]
     self.inv_dx = 1.0 / self.dx
     #asynch mpm to use different dt for different material  -- advaanced topic
@@ -46,7 +46,8 @@ class MPMSolver:
     self.E, self.nu = 1e3 * size, 0.2
     # Lame parameters
     self.mu_0, self.lambda_0 = self.E / (2 * (1 + self.nu)), self.E * self.nu / ((1 + self.nu) * (1 - 2 * self.nu))
-
+    
+    #dynamic list which store particels
     ti.root.dynamic(ti.i, max_num_particles, 8192).place(self.x, self.v, self.C, self.F, self.material, self.Jp)
       
     if self.dim == 2:
@@ -116,7 +117,7 @@ class MPMSolver:
         self.grid_m[base + offset] += weight * self.p_mass
 
   @ti.classkernel
-  def grid_op(self, dt: ti.f32):
+  def grid_op(self, dt: ti.f32, t: ti.f32):
     for I in ti.grouped(self.grid_m):
       if self.grid_m[I] > 0:  # No need for epsilon here
         self.grid_v[I] = (
@@ -129,8 +130,8 @@ class MPMSolver:
             self.grid_v[I][d] = 0
           
           grid_pos = self.dx * I
-          if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 5.0**0.5 < 0):
-            self.grid_v[I] = [0,0,0]
+          if ((grid_pos - ti.Vector([0, 1 + ti.cos(t), 6 + ti.cos(t)])).norm() - 1.0**0.5 < 0):
+            self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
 
   @ti.classkernel
   def g2p(self, dt: ti.f32):
@@ -155,14 +156,14 @@ class MPMSolver:
       self.v[p], self.C[p] = new_v, new_C
       self.x[p] += dt * self.v[p]  # advection
 
-  def step(self, frame_dt):
+  def step(self, frame_dt, t):
     substeps = int(frame_dt / self.default_dt) + 1
     for i in range(substeps):
       dt = frame_dt / substeps
       self.grid_v.fill(0)
       self.grid_m.fill(0)
       self.p2g(dt)
-      self.grid_op(dt)
+      self.grid_op(dt, t+(i*dt))
       self.g2p(dt)
       
   @ti.classkernel
