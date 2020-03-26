@@ -167,6 +167,40 @@ def dda_particle(eye_pos, d, t):
 
   grid_res = particle_grid_res
 
+  # for i in range(3):
+  #   # bbox values must be multiples of dx
+  #   bbox[0][i] = (math.floor(np_x[:, i].min() * particle_grid_res) -
+  #                 3.0) / particle_grid_res
+  #   bbox[1][i] = (math.floor(np_x[:, i].max() * particle_grid_res) +
+  #                 3.0) / particle_grid_res
+  
+  #intialize bbox
+  #associate particles with voxels
+  #recompute bbox and voxels for each frame
+  
+# @ti.kernel
+# def initialize_particle_grid():
+#   for p in range(num_particles[None]):
+#     x = particle_x[p]
+#     v = particle_v[p]
+#     ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
+#     for i in range(-support, support + 1):
+#       for j in range(-support, support + 1):
+#         for k in range(-support, support + 1):
+#           offset = ti.Vector([i, j, k])
+#           box_ipos = ipos + offset
+#           if inside_particle_grid(box_ipos):
+#             box_min = box_ipos * (1 / particle_grid_res)
+#             box_max = (box_ipos + ti.Vector([1, 1, 1])) * (
+#                 1 / particle_grid_res)
+#             if sphere_aabb_intersect_motion(
+#                 box_min, box_max, x - 0.5 * shutter_time * v,
+#                 x + 0.5 * shutter_time * v, sphere_radius):
+#               ti.append(pid.parent(), box_ipos, p)
+#               voxel_has_particle[box_ipos] = 1
+
+
+
   # bounding box
   bbox_min = bbox[0]
   bbox_max = bbox[1]
