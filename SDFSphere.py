@@ -162,19 +162,7 @@ def inside_particle_grid(ipos):
         1] and pos[1] < bbox[1][1] and bbox[0][2] <= pos[2] and pos[2] < bbox[
             1][2]
 
-@ti.func
-def dda_particle(eye_pos, d, t):
-
-  grid_res = particle_grid_res
-
-  # for i in range(3):
-  #   # bbox values must be multiples of dx
-  #   bbox[0][i] = (math.floor(np_x[:, i].min() * particle_grid_res) -
-  #                 3.0) / particle_grid_res
-  #   bbox[1][i] = (math.floor(np_x[:, i].max() * particle_grid_res) +
-  #                 3.0) / particle_grid_res
-  
-  #intialize bbox
+ #intialize bbox
   #associate particles with voxels
   #recompute bbox and voxels for each frame
   
@@ -200,14 +188,28 @@ def dda_particle(eye_pos, d, t):
 #               voxel_has_particle[box_ipos] = 1
 
 
+# for i in range(3):
+  #   # bbox values must be multiples of dx
+  #   bbox[0][i] = (math.floor(np_x[:, i].min() * particle_grid_res) -
+  #                 3.0) / particle_grid_res
+  #   bbox[1][i] = (math.floor(np_x[:, i].max() * particle_grid_res) +
+  #                 3.0) / particle_grid_res
+  
+
+@ti.func
+def dda_particle(eye_pos, d, t):
+
+  grid_res = particle_grid_res
 
   # bounding box
   bbox_min = bbox[0]
   bbox_max = bbox[1]
-  # print(bbox[0][0])
-  # print(bbox[0][1])
-  # print(bbox[1][0])
-  # print(bbox[1][1])
+  print(bbox[0][0])
+  print(bbox[0][1])
+  print(bbox[0][2])
+  print(bbox[1][0])
+  print(bbox[1][1])
+  print(bbox[0][2])
 
   hit_pos = ti.Vector([0.0, 0.0, 0.0])
   normal = ti.Vector([0.0, 0.0, 0.0])
@@ -221,83 +223,83 @@ def dda_particle(eye_pos, d, t):
 
   closest_intersection = inf
   ######## rendering 10 particles with no DDA########
-  for k in range(10):
-    pos = mpm.x[k]
-    x = ti.Vector([ pos[0], pos[1], pos[2]])
-    # p = pid[ipos[0], ipos[1], ipos[2], k]
-    # v = particle_v[p]
-    # x = particle_x[p] + t * v
-    # color = particle_color[p]
-    # ray-sphere intersection
-    dist, poss = intersect_sphere(eye_pos, d, x, 0.1)
-    hit_pos = poss  
-    if dist < closest_intersection and dist > 0:
-      hit_pos = eye_pos + dist * d
-      closest_intersection = dist
-      normal = ti.Matrix.normalized(hit_pos - x)
-  return closest_intersection, normal
+#   for k in range(10):
+#     pos = mpm.x[k]
+#     x = ti.Vector([ pos[0], pos[1], pos[2]])
+#     # p = pid[ipos[0], ipos[1], ipos[2], k]
+#     # v = particle_v[p]
+#     # x = particle_x[p] + t * v
+#     # color = particle_color[p]
+#     # ray-sphere intersection
+#     dist, poss = intersect_sphere(eye_pos, d, x, 0.1)
+#     hit_pos = poss  
+#     if dist < closest_intersection and dist > 0:
+#       hit_pos = eye_pos + dist * d
+#       closest_intersection = dist
+#       normal = ti.Matrix.normalized(hit_pos - x)
+#   return closest_intersection, normal
   ####################################################
 
   # return closest_intersection, normal
   # print(inter)
-  # if inter:
-  #     pos = eye_pos + d * (near + eps)
+  if inter:
+      pos = eye_pos + d * (near + eps)
 
-  #     rinv = 1.0 / d
-  #     rsign = ti.Vector([0, 0, 0])
-  #     for i in ti.static(range(3)):
-  #         if d[i] > 0:
-  #             rsign[i] = 1
-  #         else:
-  #             rsign[i] = -1
+      rinv = 1.0 / d
+      rsign = ti.Vector([0, 0, 0])
+      for i in ti.static(range(3)):
+          if d[i] > 0:
+              rsign[i] = 1
+          else:
+              rsign[i] = -1
 
-  #     o = grid_res * pos
-  #     ipos = ti.Matrix.floor(o).cast(int)
-  #     dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
-  #     running = 1
-  #     # DDA for voxels with at least one particle
-  #     while running:
-  #         inside = inside_particle_grid(ipos)
-  #         print(inside)
-  #         if inside:
-  #             # once we actually intersect with a voxel that contains at least one particle, loop over the particle list
-  #             num_particles = voxel_has_particle[ipos]
-  #             if num_particles != 0:
-  #                 num_particles = ti.length(pid.parent(), ipos)
-  #                 for k in range(num_particles):
-  #                   pos = mpm.x[k]
-  #                   x = ti.Vector([ pos[0], pos[1], pos[2]])
-  #                   # p = pid[ipos[0], ipos[1], ipos[2], k]
-  #                   # v = particle_v[p]
-  #                   # x = particle_x[p] + t * v
-  #                   # color = particle_color[p]
-  #                   # ray-sphere intersection
-  #                   dist, poss = intersect_sphere(eye_pos, d, x, 0.001)
-  #                   hit_pos = poss  
-  #                   if dist < closest_intersection and dist > 0:
-  #                     hit_pos = eye_pos + dist * d
-  #                     closest_intersection = dist
-  #                     normal = ti.Matrix.normalized(hit_pos - x)
-  #                     # c = color
-  #         else:
-  #             running = 0
-  #             normal = [0, 0, 0]
+      o = grid_res * pos
+      ipos = ti.Matrix.floor(o).cast(int)
+      dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
+      running = 1
+      # DDA for voxels with at least one particle
+      while running:
+          inside = inside_particle_grid(ipos)
+          print(inside)
+          if inside:
+              # once we actually intersect with a voxel that contains at least one particle, loop over the particle list
+            #   num_particles = voxel_has_particle[ipos]
+            #   if num_particles != 0:
+				num_particles = ti.length(pid.parent(), ipos)
+				for k in range(10):
+				pos = mpm.x[k]
+				x = ti.Vector([ pos[0], pos[1], pos[2]])
+				# p = pid[ipos[0], ipos[1], ipos[2], k]
+				# v = particle_v[p]
+				# x = particle_x[p] + t * v
+				# color = particle_color[p]
+				# ray-sphere intersection
+				dist, poss = intersect_sphere(eye_pos, d, x, 0.001)
+				hit_pos = poss  
+				if dist < closest_intersection and dist > 0:
+					hit_pos = eye_pos + dist * d
+					closest_intersection = dist
+					normal = ti.Matrix.normalized(hit_pos - x)
+					# c = color
+          else:
+              running = 0
+              normal = [0, 0, 0]
 
-  #         if closest_intersection < inf:
-  #             running = 0
-  #         else:
-  #             # hits nothing. Continue ray marching
-  #             mm = ti.Vector([0, 0, 0])
-  #             if dis[0] <= dis[1] and dis[0] <= dis[2]:
-  #                 mm[0] = 1
-  #             elif dis[1] <= dis[0] and dis[1] <= dis[2]:
-  #                 mm[1] = 1
-  #             else:
-  #                 mm[2] = 1
-  #             dis += mm * rsign * rinv
-  #             ipos += mm * rsign
+          if closest_intersection < inf:
+              running = 0
+          else:
+              # hits nothing. Continue ray marching
+              mm = ti.Vector([0, 0, 0])
+              if dis[0] <= dis[1] and dis[0] <= dis[2]:
+                  mm[0] = 1
+              elif dis[1] <= dis[0] and dis[1] <= dis[2]:
+                  mm[1] = 1
+              else:
+                  mm[2] = 1
+              dis += mm * rsign * rinv
+              ipos += mm * rsign
     
-  # return closest_intersection, normal
+  return closest_intersection, normal
 
 	
   #make ray casting function
@@ -386,32 +388,39 @@ def paint(t: ti.f32):
 
   
 
-  for i, j in pixels: # Parallized over all pixels
-    # c = ti.Vector([-0.8, ti.sin(t) * 0.2])
-    # z = ti.Vector([float(i) / n - 1, float(j) / n - 0.5]) * 2
-    # iterations = 0 
-    # while z.norm() < 20 and iterations < 50:
-    #   z = complex_sqr(z) + c
-    #   iterations += 1
+	for i, j in pixels: # Parallized over all pixels
+	   # c = ti.Vector([-0.8, ti.sin(t) * 0.2])
+	    # z = ti.Vector([float(i) / n - 1, float(j) / n - 0.5]) * 2
+	   # iterations = 0 
+	    # while z.norm() < 20 and iterations < 50:
+	    #   z = complex_sqr(z) + c
+	#   iterations += 1
+	#####cirle in 3D space example####
 
-    #####cirle in 3D space example####
+		for i in range(3):
+			# bbox values must be multiples of dx
+			bbox[0][i] = (math.floor(np_x[:, i].min() * particle_grid_res) -
+						3.0) / particle_grid_res
+			bbox[1][i] = (math.floor(np_x[:, i].max() * particle_grid_res) +
+						3.0) / particle_grid_res
+  
 
-    uv = ti.Vector([ ((i/640)-0.5)*(2)  , (j/320) -0.5])
+		uv = ti.Vector([ ((i/640)-0.5)*(2)  , (j/320) -0.5])
 
-    ro = ti.Vector([ 0.0, 1.0, -10.0 ])
-    rd = ti.normalized(ti.Vector([ uv[0], uv[1], 1.0 ]))
-    
-    # particles = ti.Vector(ti.f32)
-    # particles.from_numpy(np_x)
-    d = rayCast(ro, rd, t)
-    # d = RayMarch(ro, rd, t)
-    # test = np_x[20,0]
-    p = ro +rd*d
-    diff = GetLight(p, t)
-    # d = d/6.0
+		ro = ti.Vector([ 0.0, 1.0, -10.0 ])
+		rd = ti.normalized(ti.Vector([ uv[0], uv[1], 1.0 ]))
+		
+		# particles = ti.Vector(ti.f32)
+		# particles.from_numpy(np_x)
+		d = rayCast(ro, rd, t)
+		# d = RayMarch(ro, rd, t)
+		# test = np_x[20,0]
+		p = ro +rd*d
+		diff = GetLight(p, t)
+		# d = d/6.0
 
-    # pixels[i, j] = ti.Vector([diff[0],diff[1],diff[2],1.0]) 
-    pixels[i, j] = ti.Vector([diff,diff,diff,1.0]) 
+		# pixels[i, j] = ti.Vector([diff[0],diff[1],diff[2],1.0]) 
+		pixels[i, j] = ti.Vector([diff,diff,diff,1.0]) 
 
 
 
