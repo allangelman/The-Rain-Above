@@ -124,14 +124,20 @@ class MPMSolver:
             1 / self.grid_m[I]) * self.grid_v[I]  # Momentum to velocity
         self.grid_v[I] += dt * self.gravity[None]
         for d in ti.static(range(self.dim)):
+          #if each component of position is less than 3 and the velocity is less than 0
           if I[d] < 3 and self.grid_v[I][d] < 0:
             self.grid_v[I][d] = 0  # Boundary conditions
+          #if each component of position is greater than the outerbound minus 3 and the velocity is greater than 0
           if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0:
             self.grid_v[I][d] = 0
           
           grid_pos = self.dx * I
           if ((grid_pos - ti.Vector([0, 1 + ti.cos(t), 6 + ti.cos(t)])).norm() - 1.0**0.5 < 0):
             self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
+          # if (grid_pos - ti.Vector([3,3,3]) < 0):
+          #   self.grid_v[I] = [0,0,0]
+
+          
 
   @ti.classkernel
   def g2p(self, dt: ti.f32):
