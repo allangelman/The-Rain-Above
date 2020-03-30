@@ -7,7 +7,7 @@ from mpm_solver import MPMSolver
 from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
   intersect_sphere, sphere_aabb_intersect_motion, inside_taichi
 
-ti.require_version(0, 5, 7)
+ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64)
 
 n = 320
