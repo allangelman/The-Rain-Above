@@ -132,8 +132,10 @@ class MPMSolver:
             self.grid_v[I][d] = 0
           
           grid_pos = self.dx * I
-          if ((grid_pos - ti.Vector([0, 1 + ti.cos(t), 6 + ti.cos(t)])).norm() - 1.0**0.5 < 0):
-            self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
+          # if ((grid_pos - ti.Vector([0, 1 + ti.cos(t), 6 + ti.cos(t)])).norm() - 1.0**0.5 < 0):
+          #   self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
+          if ((grid_pos - ti.Vector([-2+t, 1, 6])).norm() - 1.0**0.5 < 0):
+            self.grid_v[I] = [1,0,0]
           # if (grid_pos - ti.Vector([3,3,3]) < 0):
           #   self.grid_v[I] = [0,0,0]
 
