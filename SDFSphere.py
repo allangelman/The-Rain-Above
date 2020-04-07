@@ -16,7 +16,7 @@ hit_sphere = 0
 pixels = ti.Vector(4, dt=ti.f32, shape=(n * 2, n))
 support = 2
 shutter_time = 0.5e-3
-sphere_radius = 0.05
+sphere_radius = 0.03
 MAX_STEPS = 100
 MAX_DIST = 100.0
 SURF_DIST = 0.01
