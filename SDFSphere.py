@@ -190,8 +190,10 @@ def dda_particle(eye_pos, d, t):
           num_particles = ti.length(pid.parent(), ipos)
           # print (num_particles)
         for k in range(num_particles):
-          pos = mpm.x[k]
-          x = ti.Vector([ pos[0], pos[1], pos[2]])
+          p = pid[ipos[0], ipos[1], ipos[2], k]
+          # pos = mpm.x[p]
+          x = mpm.x[p]
+          # x = ti.Vector([ pos[0], pos[1], pos[2]])
           # p = pid[ipos[0], ipos[1], ipos[2], k]
           # v = particle_v[p]
           # x = particle_x[p] + t * v
@@ -294,10 +296,9 @@ def GetLight(p, t, hit, nor):
 def clear_pid():
   for i, j, k in voxel_has_particle:
       voxel_has_particle[i, j, k] = 0
-
-  for i, j, k in pid:
-      ti.deactivate(pid.parent(), [i, j, k])
       # ti.deactivate(pid.parent(), [i, j, k])
+  for i, j, k in ti.ndrange(particle_grid_res * 4, particle_grid_res * 4, particle_grid_res * 4):
+      ti.deactivate(pid.parent(), [i, j, k])
 
 @ti.kernel
 def paint(t: ti.f32):
@@ -344,16 +345,18 @@ def main():
       max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 3) / particle_grid_res
       # print(min)
       # print(max)
-      if min_val == math.nan:
-        # print("hi")
-        min_val = -n/2
-      if max_val == math.nan:
-        # print("by")
-        max_val = n/2
+      # if min_val == math.nan:
+      #   # print("hi")
+      #   min_val = -n/2
+      # if max_val == math.nan:
+      #   # print("by")
+      #   max_val = n/2
 
       # bbox[0][i] = min_val
       bbox[1][i] = max_val
       bbox[0][i] = min_val
+      print (bbox[0][i])
+      print (bbox[1][i])
     
     #clear particle grid and pid voxel has particle
     # print('num_input_particles =', num_part)
