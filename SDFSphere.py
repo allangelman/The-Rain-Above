@@ -54,6 +54,9 @@ mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
 s_x = np.size(np_x, 0)
 s_y = np.size(np_x, 1)
+num_part = mpm.n_particles
+num_particles[None] = num_part
+print('num_input_particles =', num_part)
 
 @ti.func
 def complex_sqr(z):
@@ -96,6 +99,7 @@ def inside_particle_grid(ipos):
 @ti.kernel
 def initialize_particle_grid():
   for p in range(num_particles[None]):
+    # print(p)
     x = mpm.x[p]
     v = mpm.v[p]
     ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -104,19 +108,20 @@ def initialize_particle_grid():
         for k in range(-support, support + 1):
           offset = ti.Vector([i, j, k])
           box_ipos = ipos + offset
+          # print(box_ipos[0])
+          # print(box_ipos[1])
+          # print(box_ipos[2])
           if inside_particle_grid(box_ipos):
             box_min = box_ipos * (1 / particle_grid_res)
-            box_max = (box_ipos + ti.Vector([1, 1, 1])) * (
-                1 / particle_grid_res)
+            box_max = (box_ipos + ti.Vector([1, 1, 1])) * (1 / particle_grid_res)
             # print(box_min[0])
             # print(box_min[1])
             # print(box_min[2])
             # print(box_max[0])
             # print(box_max[1])
             # print(box_max[2])
-            if sphere_aabb_intersect_motion(
-                box_min, box_max, x - 0.5 * shutter_time * v,
-                x + 0.5 * shutter_time * v, sphere_radius):
+            if sphere_aabb_intersect_motion(box_min, box_max, x - 0.5 * shutter_time * v, x + 0.5 * shutter_time * v, sphere_radius):
+              # print(voxel_has_particle[box_ipos])
               ti.append(pid.parent(), box_ipos, p)
               voxel_has_particle[box_ipos] = 1
 
@@ -286,10 +291,19 @@ def GetLight(p, t, hit, nor):
   return diff
 
 @ti.kernel
+def clear_pid():
+  for i, j, k in voxel_has_particle:
+      voxel_has_particle[i, j, k] = 0
+
+  for i, j, k in pid:
+      ti.deactivate(pid.parent(), [i, j, k])
+      # ti.deactivate(pid.parent(), [i, j, k])
+
+@ti.kernel
 def paint(t: ti.f32):
 	for i, j in pixels: # Parallized over all pixels
 		uv = ti.Vector([ ((i/640)-0.5)*(2)  , (j/320) -0.5])
-		ro = ti.Vector([ 0.0, 1.0, 0.0 ])
+		ro = ti.Vector([ 0.0, 1.0, 1.0 ])
 		rd = ti.normalized(ti.Vector([ uv[0], uv[1], 1.0 ]))
 		d,ht,no = rayCast(ro, rd, t)
 		# d = RayMarch(ro, rd, t)
@@ -302,75 +316,76 @@ def paint(t: ti.f32):
 
 gui = ti.GUI("Fractl", (n*2 , n))
 
-for frame in range(1000000):
 
-  mpm.step(3e-2, frame * 0.03)
-  # colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
-  np_x, np_v, np_material = mpm.particle_info()
-  part_x = np_x.item((20,0))
-  part_y = np_x.item((20,1))
-  part_z = np_x.item((20,2))
-  print(frame)
-  for i in range(3):
-
-  # bbox values must be multiples of dx
-  #   print(np_x[:, i].min())
-  #   print(np_x[:, i].max())
-    min_val = (math.floor(np_x[:, i].min() * particle_grid_res) - 3) / particle_grid_res
-    max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 3) / particle_grid_res
-    # print(min)
-    # print(max)
-    if min_val == math.nan:
-      # print("hi")
-      min_val = -n/2
-    if max_val == math.nan:
-      # print("by")
-      max_val = n/2
-
-    # bbox[0][i] = min_val
-    bbox[1][i] = max_val
-    bbox[0][i] = min_val
-  
-  num_part = mpm.n_particles
-  num_particles[None] = num_part
-  #clear particle grid and pid voxel has particle
-  # print('num_input_particles =', num_part)
-
-  @ti.kernel
-  def initialize_particle_x(x: ti.ext_arr(), v: ti.ext_arr()):
+@ti.kernel
+def initialize_particle_x(x: ti.ext_arr(), v: ti.ext_arr()):
     for i in range(num_particles[None]):
       for c in ti.static(range(3)):
         particle_x[i][c] = x[i, c]
         particle_v[i][c] = v[i, c]
-        # particle_color[i][c] = color[i, c]
 
-      # for k in ti.static(range(27)):
-      #   base_coord = (inv_dx * particle_x[i] - 0.5).cast(ti.i32) + ti.Vector(
-      #       [k // 9, k // 3 % 3, k % 3])
-      #   grid_density[base_coord // grid_visualization_block_size] = 1
 
-  initialize_particle_x(np_x, np_v)
-  initialize_particle_grid()
+def main():
+  for frame in range(1000000):
+    clear_pid()
+    mpm.step(3e-2, frame * 0.03)
+    # colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
+    np_x, np_v, np_material = mpm.particle_info()
+    # part_x = np_x.item((20,0))
+    # part_y = np_x.item((20,1))
+    # part_z = np_x.item((20,2))
+    # print(frame)
+    for i in range(3):
 
-  #smaller timestep or implicit time integrator for water/snow error
+    # bbox values must be multiples of dx
+    #   print(np_x[:, i].min())
+    #   print(np_x[:, i].max())
+      min_val = (math.floor(np_x[:, i].min() * particle_grid_res) - 3) / particle_grid_res
+      max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 3) / particle_grid_res
+      # print(min)
+      # print(max)
+      if min_val == math.nan:
+        # print("hi")
+        min_val = -n/2
+      if max_val == math.nan:
+        # print("by")
+        max_val = n/2
 
-  # part = ti.Vector([np_x.item((0,0)), np_x.item((0,1)), np_x.item((0,2))])
-  # np_x = np_x / 10.0
+      # bbox[0][i] = min_val
+      bbox[1][i] = max_val
+      bbox[0][i] = min_val
+    
+    #clear particle grid and pid voxel has particle
+    # print('num_input_particles =', num_part)
 
-  # # simple camera transform
-  # # screen_x = ((np_x[:, 0] + np_x[:, 2]) / 2 ** 0.5) - 0.2
-  # screen_x = (np_x[:, 0])
-  # screen_y = (np_x[:, 1]) 
+        # for k in ti.static(range(27)):
+        #   base_coord = (inv_dx * particle_x[i] - 0.5).cast(ti.i32) + ti.Vector(
+        #       [k // 9, k // 3 % 3, k % 3])
+        #   grid_density[base_coord // grid_visualization_block_size] = 1
 
-  # screen_pos = np.stack([screen_x, screen_y], axis=1)
-  # casted = ti.cast(np_x, ti.ext_arr())
-  # mat_int = mat.cast(int)
-  # mat_int2 = mat.cast(ti.i32)
-  # size = np_x.size
-  paint(frame * 0.03)
-  voxel_has_particle.clear
-  pid.clear
-  gui.set_image(pixels)
-  # gui.circle([0 / 10, 1 / 10], radius=20, color=0xFF0000)
-  # gui.circles(screen_pos, radius=1.5, color=colors[np_material])
-  gui.show()
+    initialize_particle_x(np_x, np_v)
+    initialize_particle_grid()
+
+    #smaller timestep or implicit time integrator for water/snow error
+
+    # part = ti.Vector([np_x.item((0,0)), np_x.item((0,1)), np_x.item((0,2))])
+    # np_x = np_x / 10.0
+
+    # # simple camera transform
+    # # screen_x = ((np_x[:, 0] + np_x[:, 2]) / 2 ** 0.5) - 0.2
+    # screen_x = (np_x[:, 0])
+    # screen_y = (np_x[:, 1]) 
+
+    # screen_pos = np.stack([screen_x, screen_y], axis=1)
+    # casted = ti.cast(np_x, ti.ext_arr())
+    # mat_int = mat.cast(int)
+    # mat_int2 = mat.cast(ti.i32)
+    # size = np_x.size
+    paint(frame * 0.03)
+    gui.set_image(pixels)
+    # gui.circle([0 / 10, 1 / 10], radius=20, color=0xFF0000)
+    # gui.circles(screen_pos, radius=1.5, color=colors[np_material])
+    gui.show()
+
+if __name__ == '__main__':
+  main()
