@@ -51,7 +51,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[0, 0, 6],
+mpm.add_cube(lower_corner=[0, 3, 6],
              cube_size=[3, 1, 0.5],
              material=MPMSolver.material_elastic)
 mpm.set_gravity((0, -50, 0))
@@ -91,7 +91,7 @@ def xyz(a):
 
 @ti.func
 def GetDist(p, t):
-    s = ti.Vector([-2.0 + t, 1.0, 6.0, 1.0**0.5])
+    s = ti.Vector([0, 1.0, 6.0, 1.0**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     planeDist = p[1]
