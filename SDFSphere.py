@@ -53,7 +53,7 @@ def buffers():
 mpm = MPMSolver(res=(64, 64, 64), size=10)
 mpm.add_cube(lower_corner=[0, 3, 6],
              cube_size=[3, 1, 0.5],
-             material=MPMSolver.material_elastic)
+             material=MPMSolver.material_snow)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
 s_x = np.size(np_x, 0)
@@ -213,7 +213,7 @@ def dda_particle(eye_pos, d, t):
                     x = mpm.x[p]
                     # x = ti.Vector([ pos[0], pos[1], pos[2]])
                     # p = pid[ipos[0], ipos[1], ipos[2], k]
-                    # v = particle_v[p]
+                    # v = particle_v[p] #motion blur-- whatever moves should have this
                     # x = particle_x[p] + t * v
                     # color = particle_color[p]
                     # ray-sphere intersection
@@ -340,7 +340,7 @@ def paint(t: ti.f32):
         diff = GetLight(p, t, ht, no)
         # d = d/6.0
         # pixels[i, j] = ti.Vector([diff[0],diff[1],diff[2],1.0])
-        pixels[i, j] = ti.Vector([diff, diff, diff, 1.0])
+        pixels[i, j] = ti.Vector([diff, diff, diff, 1.0]) #color
 
 
 gui = ti.GUI("Fractl", (n * 2, n))

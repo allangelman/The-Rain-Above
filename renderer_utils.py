@@ -28,8 +28,9 @@ def ray_aabb_intersection(box_min, box_max, o, d):
 
     for i in ti.static(range(3)):
         if d[i] == 0:
-            if o[i] < box_min[i] or o[i] > box_max[i]: # if any component of ray origin is outside bbox
-                intersect = 0 #intersection is false
+            if o[i] < box_min[i] or o[i] > box_max[
+                    i]:  # if any component of ray origin is outside bbox
+                intersect = 0  #intersection is false
         else:
             i1 = (box_min[i] - o[i]) / d[i]
             i2 = (box_max[i] - o[i]) / d[i]
