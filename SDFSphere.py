@@ -22,6 +22,10 @@ MAX_DIST = 100.0
 SURF_DIST = 0.01
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
+sphere_color = ti.Vector([0.8, 0.7, 0.3])
+plane_color = ti.Vector([0.7, 0.3, 0.2])
+particle_color = ti.Vector([0.1, 0.4, 0.8])
+backgound_color = ti.Vector([0.9, 0.4, 0.6])
 
 pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
@@ -32,6 +36,7 @@ dx = 1.0 / inv_dx
 particle_x = ti.Vector(3, dt=ti.f32)
 particle_v = ti.Vector(3, dt=ti.f32)
 # grid_density = ti.var(dt=ti.i32)
+fin = 0.0
 grid_visualization_block_size = 2
 max_num_particles = 1024 * 1024 * 4
 grid_resolution = 8 // grid_visualization_block_size
@@ -53,7 +58,7 @@ def buffers():
 mpm = MPMSolver(res=(64, 64, 64), size=10)
 mpm.add_cube(lower_corner=[0, 3, 6],
              cube_size=[3, 1, 0.5],
-             material=MPMSolver.material_snow)
+             material=MPMSolver.material_elastic)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
 s_x = np.size(np_x, 0)
@@ -91,12 +96,17 @@ def xyz(a):
 
 @ti.func
 def GetDist(p, t):
+    intersection_object = 0
     s = ti.Vector([0, 1.0, 6.0, 1.0**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     planeDist = p[1]
     d = min(planeDist, sphereDist)
-    return d
+    if d == planeDist:
+      intersection_object = 8
+    else:
+      intersection_object = 7
+    return d, intersection_object
 
 
 @ti.func
@@ -141,7 +151,7 @@ def initialize_particle_grid():
 
 
 @ti.func
-def dda_particle(eye_pos, d, t):
+def dda_particle(eye_pos, d, t, step):
 
     grid_res = particle_grid_res  #8
 
@@ -210,7 +220,13 @@ def dda_particle(eye_pos, d, t):
                 for k in range(num_particles):
                     p = pid[ipos[0], ipos[1], ipos[2], k]
                     # pos = mpm.x[p]
+                    v = mpm.v[p]
                     x = mpm.x[p]
+                    if step == 0:
+                        x = mpm.x[p]
+                    else:
+                        x = mpm.x[p] + ((t+step) * v)
+                    # x = mpm.x[p]
                     # x = ti.Vector([ pos[0], pos[1], pos[2]])
                     # p = pid[ipos[0], ipos[1], ipos[2], k]
                     # v = particle_v[p] #motion blur-- whatever moves should have this
@@ -247,28 +263,26 @@ def dda_particle(eye_pos, d, t):
 
 @ti.func
 def RayMarch(ro, rd, t):
+    intersection_object = 0
     dO = 0.0
     i = 0
     while i < MAX_STEPS:
         p = ro + rd * dO
-        dS = GetDist(p, t)
+        dS, intersection_object = GetDist(p, t)
         dO += dS
         if dO > MAX_DIST or dS < SURF_DIST:
             break
         i = i + 1
-    return dO
+    return dO, intersection_object
 
 
 @ti.func
-def rayCast(eye_pos, d, t):
-    hit_sphere = 0
-    sdf_dis = RayMarch(eye_pos, d, t)
-    particle_dis, normal = dda_particle(eye_pos, d, t)
-    if min(sdf_dis, particle_dis) == sdf_dis:
-        hit_sphere = 1
-    else:
-        hit_sphere = 0
-    return min(sdf_dis, particle_dis), hit_sphere, normal
+def rayCast(eye_pos, d, t, step):
+    sdf_dis, intersection_object = RayMarch(eye_pos, d, t)
+    particle_dis, normal = dda_particle(eye_pos, d, t, step)
+    if min(sdf_dis, particle_dis) == particle_dis:
+        intersection_object = 5
+    return min(sdf_dis, particle_dis), normal, intersection_object
     # return particle_dis
 
 
@@ -279,13 +293,13 @@ def normalize(p):
 
 @ti.func
 def GetNormal(p, t):
-    d = GetDist(p, t)
+    d, intersection_object = GetDist(p, t)
     e1 = ti.Vector([0.01, 0.0, 0.0])
     e2 = ti.Vector([0.0, 0.01, 0.0])
     e3 = ti.Vector([0.0, 0.0, 0.01])
-    x = GetDist(p - e1, t)
-    y = GetDist(p - e2, t)
-    z = GetDist(p - e3, t)
+    x, intersection_object = GetDist(p - e1, t)
+    y, intersection_object = GetDist(p - e2, t)
+    z, intersection_object = GetDist(p - e3, t)
     n = ti.Vector([d - x, d - y, d - z])
     return normalize(n)
 
@@ -299,21 +313,21 @@ def clamp(p):
 
 
 @ti.func
-def GetLight(p, t, hit, nor):
+def GetLight(p, t, hit, nor, step):
     lightPos = ti.Vector([0.0 + ti.sin(t), 5.0, 6.0 + ti.cos(t)])
 
     l = normalize(lightPos - p)
     n = GetNormal(p, t)
-    if hit == 1:
-        n = GetNormal(p, t)
-    else:
+    if hit == 5: #particles
         n = nor
+    else: #sphere or plane
+        n = GetNormal(p, t)
 
     diff = clamp(ti.dot(n, l))
-    d, ht_, n_ = rayCast(p + n * SURF_DIST * 2.0, l, t)
+    d, n_, intersection_object = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
     if (d < length(lightPos - p)):
         diff = diff * 0.1
-
+    diff = (diff + 1.0)/2.0
     return diff
 
 
@@ -329,18 +343,124 @@ def clear_pid():
 
 @ti.kernel
 def paint(t: ti.f32):
-    for i, j in pixels:  # Parallized over all pixels
+    # for x in range(3):  # Parallized over all pixels
+    fin = ti.Vector([0.0, 0.0, 0.0])
+    for i,j in pixels: 
+        # fin = 0.0
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         ro = ti.Vector([0.0, 1.0, 1.0])
         rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
-        d, ht, no = rayCast(ro, rd, t)
+    
+        d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
+        p = ro + rd * d
+        light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
+        # fin += light * (1 - 0.1
+        # fin = fin + (light)
+        # fin = light
+       
+        # if light == 0:
+        #   fin = backgound_color
+        if intersection_object == 8: #if it hit the plane
+          fin = light * plane_color
+        elif intersection_object == 7: #if it hit the sphere
+          fin = light * sphere_color
+        # elif ht == 0:
+        #   fin = light * particle_color
+        elif intersection_object == 5: #if it hit the particle
+          fin = light * particle_color
+
+        # if light == 0:
+        #   fin = backgound_color
+
+        
+        pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
+    
+    # for a,b in pixels: 
+    #     # fin = 0.0
+    #     uv = ti.Vector([((a / 640) - 0.5) * (2), (b / 320) - 0.5])
+    #     ro = ti.Vector([0.0, 1.0, 1.0])
+    #     rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    
+      
+      
+    #     d, ht, no = rayCast(ro, rd, t+(0.03*1), 0.03*1)
+    #     p = ro + rd * d
+    #     light = GetLight(p, t+(0.03*1), ht, no, 0.03*1)
+    #     # fin += light * (1 - 0.1
+
+    #     fin = fin + (light * 0.3)
+  
+    #     # pixels[a, b] = ti.Vector([fin, fin, fin, 1.0]) #color
+    
+    # for c,e in pixels: 
+    #     fin = 0.0
+    #     uv = ti.Vector([((c / 640) - 0.5) * (2), (e / 320) - 0.5])
+    #     ro = ti.Vector([0.0, 1.0, 1.0])
+    #     rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    
+      
+      
+    #     d, ht, no = rayCast(ro, rd, t+(0.03*2), 0.03*2)
+    #     p = ro + rd * d
+    #     light = GetLight(p, t+(0.03*2), ht, no, 0.03*2)
+    #     # fin += light * (1 - 0.1
+    #     fin = fin + (light * 0.6)
+        
+    #     pixels[c, e] = ti.Vector([fin, fin, fin, 1.0]) #color
+
+        # d, ht, no = rayCast(ro, rd, t, 0)
+        # p = ro + rd * d
+        # light = GetLight(p, t, ht, no, 0)
+        # fin = light
+
+        # if x == 3:
+        #   fin += light * 0.5
+            
+        # mpm.step(3e-2, t+0.03)
+        # d2, ht2, no2 = rayCast(ro, rd, t+0.03)
+        # p2 = ro + rd * d2
+        # diff2 = GetLight(p2, t+1, ht2, no2)
+
+        # mpm.step(3e-2, t+0.06)
+        # d3, ht3, no3 = rayCast(ro, rd, t+0.06)
+        # p3 = ro + rd * d3
+        # diff3 = GetLight(p3, t+2, ht3, no3)
+
+        # mpm.step(3e-2, t+0.09)
+        # d4, ht4, no4 = rayCast(ro, rd, t+0.09)
+        # p4 = ro + rd * d4
+        # diff4 = GetLight(p4, t+3, ht4, no4)
+
+        # mpm.step(3e-2, t+0.12)
+        # d5, ht5, no5 = rayCast(ro, rd, t+0.12)
+        # p5 = ro + rd * d5
+        # diff5 = GetLight(p5, t+4, ht5, no5)
+
+        # mpm.step(3e-2, t-0.12)
         # d = RayMarch(ro, rd, t)
         # test = np_x[20,0]
-        p = ro + rd * d
-        diff = GetLight(p, t, ht, no)
+
+        # p = ro + rd * d
+        # p2 = ro + rd * d2
+        # p3 = ro + rd * d3
+        # p4 = ro + rd * d4
+        # p5 = ro + rd * d5
+        # diff = GetLight(p, t, ht, no)
+        # diff2 = GetLight(p2, t+1, ht2, no2)
+        # diff3 = GetLight(p3, t+2, ht3, no3)
+        # diff4 = GetLight(p4, t+3, ht4, no4)
+        # diff5 = GetLight(p5, t+4, ht5, no5)
+
+        # final = (diff+diff2+diff3+diff4+diff5)/5.0
+        # final = fin/5.0
+
         # d = d/6.0
         # pixels[i, j] = ti.Vector([diff[0],diff[1],diff[2],1.0])
-        pixels[i, j] = ti.Vector([diff, diff, diff, 1.0]) #color
+        
+        # pixels[i, j] = ti.Vector([diff, diff, diff, 1.0]) #color
+            # pixels[i, j] = ti.Vector([fin, fin, fin, 1.0]) #color
+        # return final
+        # x +=1
 
 
 gui = ti.GUI("Fractl", (n * 2, n))
