@@ -343,10 +343,9 @@ def clear_pid():
 
 @ti.kernel
 def paint(t: ti.f32):
-    # for x in range(3):  # Parallized over all pixels
+    # Parallized over all pixels
     fin = ti.Vector([0.0, 0.0, 0.0])
     for i,j in pixels: 
-        # fin = 0.0
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         ro = ti.Vector([0.0, 1.0, 1.0])
         rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
@@ -354,114 +353,37 @@ def paint(t: ti.f32):
         d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
         p = ro + rd * d
         light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
-        # fin += light * (1 - 0.1
-        # fin = fin + (light)
-        # fin = light
-       
-        # if light == 0:
-        #   fin = backgound_color
+      
         if intersection_object == 8: #if it hit the plane
           fin = light * plane_color
         elif intersection_object == 7: #if it hit the sphere
           fin = light * sphere_color
-        # elif ht == 0:
-        #   fin = light * particle_color
+      
         elif intersection_object == 5: #if it hit the particle
           fin = light * particle_color
-
-        # if light == 0:
-        #   fin = backgound_color
-
         
         pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
-    
-    # for a,b in pixels: 
-    #     # fin = 0.0
-    #     uv = ti.Vector([((a / 640) - 0.5) * (2), (b / 320) - 0.5])
-    #     ro = ti.Vector([0.0, 1.0, 1.0])
-    #     rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
-    
+
+    ##############MOTION BLUR ATTEMPT################
+    # fin = 0.0
+    # for x in range(3):
+    #     for i,j in pixels: 
+    #         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+    #         ro = ti.Vector([0.0, 1.0, 1.0])
+    #         rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+          
+    #         d, no, intersection_object= rayCast(ro, rd, t+(0.03*x), 0.03*x)
+    #         p = ro + rd * d
+    #         light = GetLight(p, t+(0.03*x), intersection_object, no, 0.03*x)
+    #         if fin == 0:
+    #             fin = fin + (light * 0.1)
+    #         if fin == 1:
+    #             fin = fin + (light * 0.3)
+    #         if fin == 2:
+    #             fin = fin + (light * 0.6)
       
-      
-    #     d, ht, no = rayCast(ro, rd, t+(0.03*1), 0.03*1)
-    #     p = ro + rd * d
-    #     light = GetLight(p, t+(0.03*1), ht, no, 0.03*1)
-    #     # fin += light * (1 - 0.1
-
-    #     fin = fin + (light * 0.3)
-  
-    #     # pixels[a, b] = ti.Vector([fin, fin, fin, 1.0]) #color
-    
-    # for c,e in pixels: 
-    #     fin = 0.0
-    #     uv = ti.Vector([((c / 640) - 0.5) * (2), (e / 320) - 0.5])
-    #     ro = ti.Vector([0.0, 1.0, 1.0])
-    #     rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
-    
-      
-      
-    #     d, ht, no = rayCast(ro, rd, t+(0.03*2), 0.03*2)
-    #     p = ro + rd * d
-    #     light = GetLight(p, t+(0.03*2), ht, no, 0.03*2)
-    #     # fin += light * (1 - 0.1
-    #     fin = fin + (light * 0.6)
-        
-    #     pixels[c, e] = ti.Vector([fin, fin, fin, 1.0]) #color
-
-        # d, ht, no = rayCast(ro, rd, t, 0)
-        # p = ro + rd * d
-        # light = GetLight(p, t, ht, no, 0)
-        # fin = light
-
-        # if x == 3:
-        #   fin += light * 0.5
-            
-        # mpm.step(3e-2, t+0.03)
-        # d2, ht2, no2 = rayCast(ro, rd, t+0.03)
-        # p2 = ro + rd * d2
-        # diff2 = GetLight(p2, t+1, ht2, no2)
-
-        # mpm.step(3e-2, t+0.06)
-        # d3, ht3, no3 = rayCast(ro, rd, t+0.06)
-        # p3 = ro + rd * d3
-        # diff3 = GetLight(p3, t+2, ht3, no3)
-
-        # mpm.step(3e-2, t+0.09)
-        # d4, ht4, no4 = rayCast(ro, rd, t+0.09)
-        # p4 = ro + rd * d4
-        # diff4 = GetLight(p4, t+3, ht4, no4)
-
-        # mpm.step(3e-2, t+0.12)
-        # d5, ht5, no5 = rayCast(ro, rd, t+0.12)
-        # p5 = ro + rd * d5
-        # diff5 = GetLight(p5, t+4, ht5, no5)
-
-        # mpm.step(3e-2, t-0.12)
-        # d = RayMarch(ro, rd, t)
-        # test = np_x[20,0]
-
-        # p = ro + rd * d
-        # p2 = ro + rd * d2
-        # p3 = ro + rd * d3
-        # p4 = ro + rd * d4
-        # p5 = ro + rd * d5
-        # diff = GetLight(p, t, ht, no)
-        # diff2 = GetLight(p2, t+1, ht2, no2)
-        # diff3 = GetLight(p3, t+2, ht3, no3)
-        # diff4 = GetLight(p4, t+3, ht4, no4)
-        # diff5 = GetLight(p5, t+4, ht5, no5)
-
-        # final = (diff+diff2+diff3+diff4+diff5)/5.0
-        # final = fin/5.0
-
-        # d = d/6.0
-        # pixels[i, j] = ti.Vector([diff[0],diff[1],diff[2],1.0])
-        
-        # pixels[i, j] = ti.Vector([diff, diff, diff, 1.0]) #color
-            # pixels[i, j] = ti.Vector([fin, fin, fin, 1.0]) #color
-        # return final
-        # x +=1
-
+    #         pixels[i, j] = ti.Vector([fin, fin, fin, 1.0]) #color
+    ##############MOTION BLUR ATTEMPT################
 
 gui = ti.GUI("Fractl", (n * 2, n))
 
