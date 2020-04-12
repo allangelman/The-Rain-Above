@@ -345,45 +345,79 @@ def clear_pid():
 def paint(t: ti.f32):
     # Parallized over all pixels
     fin = ti.Vector([0.0, 0.0, 0.0])
+    intensity = 0.0
+
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         ro = ti.Vector([0.0, 1.0, 1.0])
         rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
-    
+
         d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
         p = ro + rd * d
         light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
-      
+
         if intersection_object == 8: #if it hit the plane
-          fin = light * plane_color
+            fin = light * plane_color
         elif intersection_object == 7: #if it hit the sphere
-          fin = light * sphere_color
-      
+            fin = light * sphere_color
+
         elif intersection_object == 5: #if it hit the particle
-          fin = light * particle_color
-        
+            fin = light * particle_color
+
         pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
 
-    ##############MOTION BLUR ATTEMPT################
+##############  MOTION BLUR ATTEMPT 1 ################
+    # fin = ti.Vector([0.0, 0.0, 0.0])
+    # intensity = 0.0
+
+    # for i,j in pixels: 
+    #     pixels[i, j] = ti.Vector([0, 0, 0, 1.0]) #color
+    # for x in range(3):
+    #     for i in range(n*2): 
+    #         for j in range(n): 
+    #             uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+    #             ro = ti.Vector([0.0, 1.0, 1.0])
+    #             rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    #             # for x in range(3):
+    #             d, no, intersection_object = rayCast(ro, rd, t+(0.03*x), 0.03*x)
+    #             p = ro + rd * d
+    #             light = GetLight(p, t+(0.03*x), intersection_object, no, 0.03*x)
+    #             #     if x == 0:
+    #             #         intensity = intensity + (light * 0.1)
+    #             #     if x == 1:
+    #             #         intensity = intensity + (light * 0.3)
+    #             #     if x == 2:
+    #             #         intensity = intensity + (light * 0.6)
+    #             if x == 0:
+    #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.1), intensity + (light * 0.1), intensity + (light * 0.1), 1.0])
+    #             if x == 1:
+    #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.3), intensity + (light * 0.3), intensity + (light * 0.3), 1.0])
+    #             if x == 2:
+    #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.6), intensity + (light * 0.6), intensity + (light * 0.6), 1.0])
+    ##############  MOTION BLUR ATTEMPT 1 ################
+
+
+    ##############  MOTION BLUR ATTEMPT 2 ################
     # fin = 0.0
     # for x in range(3):
-    #     for i,j in pixels: 
-    #         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
-    #         ro = ti.Vector([0.0, 1.0, 1.0])
-    #         rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    #     for i in range(n*2): 
+    #         for j in range(n): 
+    #             uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+    #             ro = ti.Vector([0.0, 1.0, 1.0])
+    #             rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+              
+    #             d, no, intersection_object= rayCast(ro, rd, t+(0.03*x), 0.03*x)
+    #             p = ro + rd * d
+    #             light = GetLight(p, t+(0.03*x), intersection_object, no, 0.03*x)
+    #             if x == 0:
+    #                 fin = fin + (light * 0.1)
+    #             if x == 1:
+    #                 fin = fin + (light * 0.3)
+    #             if x == 2:
+    #                 fin = fin + (light * 0.6)
           
-    #         d, no, intersection_object= rayCast(ro, rd, t+(0.03*x), 0.03*x)
-    #         p = ro + rd * d
-    #         light = GetLight(p, t+(0.03*x), intersection_object, no, 0.03*x)
-    #         if fin == 0:
-    #             fin = fin + (light * 0.1)
-    #         if fin == 1:
-    #             fin = fin + (light * 0.3)
-    #         if fin == 2:
-    #             fin = fin + (light * 0.6)
-      
-    #         pixels[i, j] = ti.Vector([fin, fin, fin, 1.0]) #color
-    ##############MOTION BLUR ATTEMPT################
+    #             pixels[i, j] = ti.Vector([fin, fin, fin, 1.0]) #color
+    ##############  MOTION BLUR ATTEMPT 2 ################
 
 gui = ti.GUI("Fractl", (n * 2, n))
 
