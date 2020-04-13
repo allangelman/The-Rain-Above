@@ -58,7 +58,7 @@ def buffers():
 mpm = MPMSolver(res=(64, 64, 64), size=10)
 mpm.add_cube(lower_corner=[0, 3, 6],
              cube_size=[3, 1, 0.5],
-             material=MPMSolver.material_elastic)
+             material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
 s_x = np.size(np_x, 0)
@@ -119,7 +119,7 @@ def inside_particle_grid(ipos):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(num_particles[None]):
+    for p in range(num_particles):
         # print(p)
         x = mpm.x[p]
         v = mpm.v[p]
@@ -282,7 +282,7 @@ def rayCast(eye_pos, d, t, step):
     particle_dis, normal = dda_particle(eye_pos, d, t, step)
     if min(sdf_dis, particle_dis) == particle_dis:
         intersection_object = 5
-    return min(sdf_dis, particle_dis), normal, intersection_object
+    return min(sdf_dis, particle_dis), normal, intersection_object, sdf_dis
     # return particle_dis
 
 
@@ -324,7 +324,7 @@ def GetLight(p, t, hit, nor, step):
         n = GetNormal(p, t)
 
     diff = clamp(ti.dot(n, l))
-    d, n_, intersection_object = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
+    d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
     if (d < length(lightPos - p)):
         diff = diff * 0.1
     diff = (diff + 1.0)/2.0
@@ -367,6 +367,40 @@ def paint(t: ti.f32):
         pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
 
 ##############  MOTION BLUR ATTEMPT 1 ################
+    # original_t = t
+    # for x in range(3):
+    #     step_t = original_t + 0.03*x
+    #     # step(t+0.03)
+    #     for i in range(n*2): 
+    #         for j in range(n): 
+    #             uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+    #             ro = ti.Vector([0.0, 1.0, 1.0])
+    #             rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+
+    #             d, no, intersection_object, sdf = rayCast(ro, rd, step_t, 0.03*x)
+    #             p = ro + rd * d
+    #             light = GetLight(p, step_t, intersection_object, no, 0.03*x)
+              
+    #             # rendering the backgound initially, do this at the beginning of each 3 frame loop
+    #             if x == 0:
+    #               sdf_p = ro + rd * sdf
+    #               # putting in 6 so that it renders the background instead of the particles
+    #               sdf_light = GetLight(sdf_p, original_t, 6, no, 0.03*x)
+    #               pixels[i, j] = ti.Vector([sdf_light, sdf_light, sdf_light, 1.0]) #color
+              
+    #             # rendering the particles at the third time step most opaque, the ones at the second and first less opaque to create a trail effect
+    #             if intersection_object == 5:
+    #               if x == 0:
+    #                   # doing pixel = pixels + ... to add the particle color value on top of the background
+    #                   pixels[i, j] = pixels[i, j] + ti.Vector([light * 0.1, light * 0.1, light * 0.1, 1.0])
+    #               if x == 1:
+    #                   pixels[i, j] = pixels[i, j] + ti.Vector([light * 0.3, light * 0.3, light * 0.3, 1.0])
+    #               if x == 2:
+    #                   pixels[i, j] = pixels[i, j] + ti.Vector([light * 0.6, light * 0.6, light * 0.6, 1.0])
+##############  MOTION BLUR ATTEMPT 1 ################            
+      
+
+##############  MOTION BLUR ATTEMPT 2 ################
     # fin = ti.Vector([0.0, 0.0, 0.0])
     # intensity = 0.0
 
@@ -394,10 +428,10 @@ def paint(t: ti.f32):
     #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.3), intensity + (light * 0.3), intensity + (light * 0.3), 1.0])
     #             if x == 2:
     #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.6), intensity + (light * 0.6), intensity + (light * 0.6), 1.0])
-    ##############  MOTION BLUR ATTEMPT 1 ################
-
-
     ##############  MOTION BLUR ATTEMPT 2 ################
+
+
+    ##############  MOTION BLUR ATTEMPT 3 ################
     # fin = 0.0
     # for x in range(3):
     #     for i in range(n*2): 
@@ -417,7 +451,7 @@ def paint(t: ti.f32):
     #                 fin = fin + (light * 0.6)
           
     #             pixels[i, j] = ti.Vector([fin, fin, fin, 1.0]) #color
-    ##############  MOTION BLUR ATTEMPT 2 ################
+    ##############  MOTION BLUR ATTEMPT 3 ################
 
 gui = ti.GUI("Fractl", (n * 2, n))
 
@@ -429,6 +463,9 @@ def initialize_particle_x(x: ti.ext_arr(), v: ti.ext_arr()):
             particle_x[i][c] = x[i, c]
             particle_v[i][c] = v[i, c]
 
+@ti.func
+def step(t):
+    mpm.step(3e-2, t)
 
 def main():
     for frame in range(1000000):
