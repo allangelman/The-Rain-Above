@@ -232,11 +232,11 @@ def dda_particle(eye_pos, d, t, step):
                     p = pid[ipos[0], ipos[1], ipos[2], k]
                     # pos = mpm.x[p]
                     v = mpm.v[p]
-                    x = mpm.x[p]
-                    if step == 0:
-                        x = mpm.x[p]
-                    else:
-                        x = mpm.x[p] + ((t+step) * v)
+                    # x = mpm.x[p]
+                    # if step == 0:
+                    #     x = mpm.x[p]
+                    # else:
+                    x = mpm.x[p] + ((step) * v)
                     # x = mpm.x[p]
                     # x = ti.Vector([ pos[0], pos[1], pos[2]])
                     # p = pid[ipos[0], ipos[1], ipos[2], k]
@@ -357,59 +357,59 @@ def clear_pid():
 @ti.kernel
 def paint(t: ti.f32):
     # Parallized over all pixels
-    fin = ti.Vector([0.0, 0.0, 0.0])
-    intensity = 0.0
+    # fin = ti.Vector([0.0, 0.0, 0.0])
+    # intensity = 0.0
 
-    for i,j in pixels: 
-        uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
-        ro = ti.Vector([0.0, 1.0, 1.0])
-        rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    # for i,j in pixels: 
+    #     uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+    #     ro = ti.Vector([0.0, 1.0, 1.0])
+    #     rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
 
-        d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
-        p = ro + rd * d
-        light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
+    #     d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
+    #     p = ro + rd * d
+    #     light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
 
-        if intersection_object == 8: #if it hit the plane
-            fin = light * plane_color
-        elif intersection_object == 7: #if it hit the sphere
-            fin = light * sphere_color
+    #     if intersection_object == 8: #if it hit the plane
+    #         fin = light * plane_color
+    #     elif intersection_object == 7: #if it hit the sphere
+    #         fin = light * sphere_color
 
-        elif intersection_object == 5: #if it hit the particle
-            fin = light * particle_color
+    #     elif intersection_object == 5: #if it hit the particle
+    #         fin = light * particle_color
 
-        pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
+    #     pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
 
 ##############  MOTION BLUR ATTEMPT 1 ################
-    # original_t = t
-    # for x in range(3):
-    #     step_t = original_t + 0.03*x
-    #     # step(t+0.03)
-    #     for i in range(n*2): 
-    #         for j in range(n): 
-    #             uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
-    #             ro = ti.Vector([0.0, 1.0, 1.0])
-    #             rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    original_t = t
+    for x in range(3):
+        step_t = original_t + 0.3*x
+        # step(t+0.03)
+        for i in range(n*2): 
+            for j in range(n): 
+                uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+                ro = ti.Vector([0.0, 1.0, 1.0])
+                rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
 
-    #             d, no, intersection_object, sdf = rayCast(ro, rd, step_t, 0.03*x)
-    #             p = ro + rd * d
-    #             light = GetLight(p, step_t, intersection_object, no, 0.03*x)
+                d, no, intersection_object, sdf = rayCast(ro, rd, step_t, 0.3*x)
+                p = ro + rd * d
+                light = GetLight(p, step_t, intersection_object, no, 0.3*x)
               
-    #             # rendering the backgound initially, do this at the beginning of each 3 frame loop
-    #             if x == 0:
-    #               sdf_p = ro + rd * sdf
-    #               # putting in 6 so that it renders the background instead of the particles
-    #               sdf_light = GetLight(sdf_p, original_t, 6, no, 0.03*x)
-    #               pixels[i, j] = ti.Vector([sdf_light, sdf_light, sdf_light, 1.0]) #color
+                # rendering the backgound initially, do this at the beginning of each 3 frame loop
+                if x == 0:
+                  sdf_p = ro + rd * sdf
+                  # putting in 6 so that it renders the background instead of the particles
+                  sdf_light = GetLight(sdf_p, original_t, 6, no, 0.3*x)
+                  pixels[i, j] = ti.Vector([sdf_light, sdf_light, sdf_light, 1.0]) #color
               
-    #             # rendering the particles at the third time step most opaque, the ones at the second and first less opaque to create a trail effect
-    #             if intersection_object == 5:
-    #               if x == 0:
-    #                   # doing pixel = pixels + ... to add the particle color value on top of the background
-    #                   pixels[i, j] = pixels[i, j] + ti.Vector([light * 0.1, light * 0.1, light * 0.1, 1.0])
-    #               if x == 1:
-    #                   pixels[i, j] = pixels[i, j] + ti.Vector([light * 0.3, light * 0.3, light * 0.3, 1.0])
-    #               if x == 2:
-    #                   pixels[i, j] = pixels[i, j] + ti.Vector([light * 0.6, light * 0.6, light * 0.6, 1.0])
+                # rendering the particles at the third time step most opaque, the ones at the second and first less opaque to create a trail effect
+                if intersection_object == 5:
+                  if x == 0:
+                      # doing pixel = pixels + ... to add the particle color value on top of the background
+                      pixels[i, j] += ti.Vector([light * 0.1, light * 0.1, light * 0.1, 1.0])
+                  if x == 1:
+                      pixels[i, j] += ti.Vector([light * 0.3, light * 0.3, light * 0.3, 1.0])
+                  if x == 2:
+                      pixels[i, j] += ti.Vector([light * 0.6, light * 0.6, light * 0.6, 1.0])
 ##############  MOTION BLUR ATTEMPT 1 ################            
       
 
