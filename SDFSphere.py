@@ -130,7 +130,7 @@ def inside_particle_grid(ipos):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(num_particles):
+    for p in range(1):
         # print(p)
         x = mpm.x[p]
         v = mpm.v[p]
@@ -236,7 +236,7 @@ def dda_particle(eye_pos, d, t, step):
                     # if step == 0:
                     #     x = mpm.x[p]
                     # else:
-                    x = mpm.x[p] + ((step) * v)
+                    x = mpm.x[p] + step * mpm.v[p]
                     # x = mpm.x[p]
                     # x = ti.Vector([ pos[0], pos[1], pos[2]])
                     # p = pid[ipos[0], ipos[1], ipos[2], k]
@@ -381,18 +381,18 @@ def paint(t: ti.f32):
 
 ##############  MOTION BLUR ATTEMPT 1 ################
     original_t = t
-    for x in range(3):
-        step_t = original_t + 0.3*x
-        # step(t+0.03)
-        for i in range(n*2): 
-            for j in range(n): 
+    # step(t+0.03)
+    for i in range(n*2):
+        for j in range(n):
+            for x in range(3):
+                step_t = original_t + 0.03*x
                 uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
                 ro = ti.Vector([0.0, 1.0, 1.0])
                 rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
 
-                d, no, intersection_object, sdf = rayCast(ro, rd, step_t, 0.3*x)
+                d, no, intersection_object, sdf = rayCast(ro, rd, step_t, 0.03*x)
                 p = ro + rd * d
-                light = GetLight(p, step_t, intersection_object, no, 0.3*x)
+                light = GetLight(p, step_t, intersection_object, no, 0.03*x)
               
                 # rendering the backgound initially, do this at the beginning of each 3 frame loop
                 if x == 0:
