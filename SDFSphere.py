@@ -22,8 +22,8 @@ MAX_DIST = 100.0
 SURF_DIST = 0.01
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
-sphere_color = ti.Vector([0.8, 0.7, 0.3])
-plane_color = ti.Vector([0.7, 0.3, 0.2])
+sphere_color = ti.Vector([0.9, 0.8, 0.3])
+plane_color = ti.Vector([0.9, 0.4, 0.3])
 particle_color = ti.Vector([0.1, 0.4, 0.8])
 backgound_color = ti.Vector([0.9, 0.4, 0.6])
 
@@ -93,6 +93,16 @@ def DistLine(ro, rd, p):
 def xyz(a):
     return ti.Vector([a[0], a[1], a[2]])
 
+@ti.func
+def sdf_Capsule(p, a, b, r):
+  ab = b - a
+  ap = p - a
+
+  t = ti.dot(ab, ap) / ti.dot(ab, ab)
+  t_clamped = clamp(t)
+  c = a + t_clamped*ab
+  return length(p-c) - r
+
 
 @ti.func
 def GetDist(p, t):
@@ -101,7 +111,8 @@ def GetDist(p, t):
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     planeDist = p[1]
-    d = min(planeDist, sphereDist)
+    capsuleDist = sdf_Capsule(p, ti.Vector([2,1,6]), ti.Vector([4,2,6]), 0.2)
+    d = min(planeDist, sphereDist, capsuleDist)
     if d == planeDist:
       intersection_object = 8
     else:
@@ -309,6 +320,8 @@ def clamp(p):
 
     if p < 0:
         p = 0
+    if p > 1:
+        p = 1
     return p
 
 

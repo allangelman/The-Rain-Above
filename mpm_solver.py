@@ -2,6 +2,13 @@ import taichi as ti
 import random
 import numpy as np
 
+@ti.func
+def clamp(p):
+  if p < 0:
+      p = 0
+  if p > 1:
+      p = 1
+  return p
 
 @ti.data_oriented
 class MPMSolver:
@@ -146,6 +153,12 @@ class MPMSolver:
                     #   self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
                     if ((grid_pos - ti.Vector([0, 1, 6])).norm() -
                             1.0**0.5 < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    ab = ti.Vector([4,2,6]) - ti.Vector([2,1,6])
+                    ap = grid_pos - ti.Vector([2,1,6])
+                    t = ti.dot(ab, ap) / ti.dot(ab, ab)
+                    t_clamped = clamp(t)
+                    if ((grid_pos - (ti.Vector([2,1,6]) + t_clamped*ab )).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     # if (grid_pos - ti.Vector([3,3,3]) < 0):
                     #   self.grid_v[I] = [0,0,0]
