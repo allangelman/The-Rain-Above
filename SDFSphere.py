@@ -26,6 +26,10 @@ sphere_color = ti.Vector([0.9, 0.8, 0.3])
 plane_color = ti.Vector([0.9, 0.4, 0.3])
 particle_color = ti.Vector([0.1, 0.4, 0.8])
 backgound_color = ti.Vector([0.9, 0.4, 0.6])
+frameTime = 0.03
+SPHERE = 7
+PLANE = 8
+PARTICLES = 5
 
 pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
@@ -116,9 +120,9 @@ def GetDist(p, t):
     capsuleDist = sdf_Capsule(p, ti.Vector([2,1,6]), ti.Vector([4,2,6]), 0.2)
     d = min(planeDist, sphereDist, capsuleDist)
     if d == planeDist:
-      intersection_object = 8
+      intersection_object = PLANE
     else:
-      intersection_object = 7
+      intersection_object = SPHERE
     return d, intersection_object
 
 
@@ -297,7 +301,7 @@ def rayCast(eye_pos, d, t, step):
     sdf_dis, intersection_object = RayMarch(eye_pos, d, t)
     particle_dis, normal = dda_particle(eye_pos, d, t, step)
     if min(sdf_dis, particle_dis) == particle_dis:
-        intersection_object = 5
+        intersection_object = PARTICLES
     return min(sdf_dis, particle_dis), normal, intersection_object, sdf_dis
     # return particle_dis
 
@@ -390,14 +394,14 @@ def paint(t: ti.f32):
     for i in range(n*2): #this is parallilized
         for j in range(n):
             for x in range(3):
-                step_t = original_t + 0.03*x
+                step_t = original_t + frameTime*x
                 uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
                 ro = ti.Vector([0.0, 1.0, 1.0])
                 rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
 
-                d, no, intersection_object, sdf = rayCast(ro, rd, step_t, 0.03*x)
+                d, no, intersection_object, sdf = rayCast(ro, rd, step_t, frameTime*x)
                 p = ro + rd * d
-                light = GetLight(p, step_t, intersection_object, no, 0.03*x)
+                light = GetLight(p, step_t, intersection_object, no, frameTime*x)
               
                 # rendering the backgound initially, do this at the beginning of each 3 frame loop
                 if x == 0:
@@ -407,7 +411,7 @@ def paint(t: ti.f32):
                   pixels[i, j] = ti.Vector([sdf_light, sdf_light, sdf_light, 1.0]) #color
               
                 # rendering the particles at the third time step most opaque, the ones at the second and first less opaque to create a trail effect
-                if intersection_object == 5:
+                if intersection_object == PARTICLES:
                   if x == 0:
                       # doing pixel = pixels + ... to add the particle color value on top of the background
                       pixels[i, j] += ti.Vector([light * 0.1, light * 0.1, light * 0.1, 1.0])
@@ -488,7 +492,7 @@ def step(t):
 def main():
     for frame in range(1000000):
         clear_pid()
-        mpm.step(3e-2, frame * 0.03)
+        mpm.step(3e-2, frame * frameTime)
         # colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
         np_x, np_v, np_material = mpm.particle_info()
         # part_x = np_x.item((20,0))
@@ -548,7 +552,7 @@ def main():
 
         # for x in range(3):  
         #     clear_pid()
-        paint(frame * 0.03)
+        paint(frame * frameTime)
         
         gui.set_image(pixels)
         # gui.circle([0 / 10, 1 / 10], radius=20, color=0xFF0000)
