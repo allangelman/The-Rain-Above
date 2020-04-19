@@ -41,7 +41,9 @@ grid_visualization_block_size = 2
 max_num_particles = 1024 * 1024 * 4
 grid_resolution = 8 // grid_visualization_block_size
 # hit_sphere = 0
-
+#make world size constant and fix it through the code
+#fix magic numbers (0.03)
+#make enum variables instead of strings (capitilized constants)
 
 @ti.layout
 def buffers():
@@ -130,11 +132,12 @@ def inside_particle_grid(ipos):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(1):
+    for p in range(num_particles[None]):
         # print(p)
         x = mpm.x[p]
         v = mpm.v[p]
         ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
+        # ipos = ti.Matrix.floor((x * particle_grid_res)/10).cast(ti.i32) #particle postion to grid coorid
         for i in range(-support, support + 1):
             for j in range(-support, support + 1):
                 for k in range(-support, support + 1):
@@ -144,7 +147,8 @@ def initialize_particle_grid():
                     # print(box_ipos[1])
                     # print(box_ipos[2])
                     if inside_particle_grid(box_ipos):
-                        box_min = box_ipos * (1 / particle_grid_res)
+                        box_min = box_ipos * (1/particle_grid_res)
+                        # box_min = box_ipos * (10 / particle_grid_res) 
                         box_max = (box_ipos + ti.Vector([1, 1, 1])) * (
                             1 / particle_grid_res)
                         # print(box_min[0])
@@ -213,8 +217,9 @@ def dda_particle(eye_pos, d, t, step):
                 rsign[i] = 1
             else:
                 rsign[i] = -1
-
-        o = grid_res * pos
+        #missing coeficient 
+        o = grid_res * pos 
+        # o = grid_res * pos * 10 
         ipos = ti.Matrix.floor(o).cast(int)
         dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
         running = 1
@@ -382,7 +387,7 @@ def paint(t: ti.f32):
 ##############  MOTION BLUR ATTEMPT 1 ################
     original_t = t
     # step(t+0.03)
-    for i in range(n*2):
+    for i in range(n*2): #this is parallilized
         for j in range(n):
             for x in range(3):
                 step_t = original_t + 0.03*x
@@ -540,7 +545,11 @@ def main():
         # mat_int = mat.cast(int)
         # mat_int2 = mat.cast(ti.i32)
         # size = np_x.size
+
+        # for x in range(3):  
+        #     clear_pid()
         paint(frame * 0.03)
+        
         gui.set_image(pixels)
         # gui.circle([0 / 10, 1 / 10], radius=20, color=0xFF0000)
         # gui.circles(screen_pos, radius=1.5, color=colors[np_material])
