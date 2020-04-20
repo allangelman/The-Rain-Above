@@ -152,9 +152,9 @@ def initialize_particle_grid():
                     # print(box_ipos[2])
                     if inside_particle_grid(box_ipos):
                         box_min = box_ipos * (1/particle_grid_res)
-                        # box_min = box_ipos * (10 / particle_grid_res) 
-                        box_max = (box_ipos + ti.Vector([1, 1, 1])) * (
-                            1 / particle_grid_res)
+                        # box_min = box_ipos * (10/ particle_grid_res) 
+                        box_max = (box_ipos + ti.Vector([1, 1, 1])) * (1 / particle_grid_res)
+                        # box_max = (box_ipos + ti.Vector([1, 1, 1])) * (10 / particle_grid_res)
                         # print(box_min[0])
                         # print(box_min[1])
                         # print(box_min[2])
@@ -222,8 +222,8 @@ def dda_particle(eye_pos, d, t, step):
             else:
                 rsign[i] = -1
         #missing coeficient 
+        # o = grid_res * pos * 10
         o = grid_res * pos 
-        # o = grid_res * pos * 10 
         ipos = ti.Matrix.floor(o).cast(int)
         dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
         running = 1
@@ -232,6 +232,7 @@ def dda_particle(eye_pos, d, t, step):
             inside = inside_particle_grid(ipos)
             # print(inside)
             if inside:
+                # print(inside)
                 # once we actually intersect with a voxel that contains at least one particle, loop over the particle list
                 num_particles = voxel_has_particle[ipos]
                 if num_particles != 0:
@@ -406,8 +407,8 @@ def paint(t: ti.f32):
                 # rendering the backgound initially, do this at the beginning of each 3 frame loop
                 if x == 0:
                   sdf_p = ro + rd * sdf
-                  # putting in 6 so that it renders the background instead of the particles
-                  sdf_light = GetLight(sdf_p, original_t, 6, no, 0.3*x)
+                  # putting in SPHERE so that it renders the background instead of the particles
+                  sdf_light = GetLight(sdf_p, original_t, SPHERE, no, frameTime*x)
                   pixels[i, j] = ti.Vector([sdf_light, sdf_light, sdf_light, 1.0]) #color
               
                 # rendering the particles at the third time step most opaque, the ones at the second and first less opaque to create a trail effect
@@ -504,10 +505,11 @@ def main():
             # bbox values must be multiples of dx
             #   print(np_x[:, i].min())
             #   print(np_x[:, i].max())
-            min_val = (math.floor(np_x[:, i].min() * particle_grid_res) -
-                       3) / particle_grid_res
-            max_val = (math.floor(np_x[:, i].max() * particle_grid_res) +
-                       3) / particle_grid_res
+          
+            min_val = (math.floor(np_x[:, i].min() * particle_grid_res) - 
+                      3) / particle_grid_res
+            max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 
+                      3) / particle_grid_res
             # print(min)
             # print(max)
             # if min_val == math.nan:
