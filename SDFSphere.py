@@ -62,7 +62,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[0, 3, 6],
+mpm.add_cube(lower_corner=[0, 5, 6],
              cube_size=[3, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -117,8 +117,9 @@ def GetDist(p, t):
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     planeDist = p[1]
-    capsuleDist = sdf_Capsule(p, ti.Vector([2,1,6]), ti.Vector([4,2,6]), 0.2)
-    d = min(planeDist, sphereDist, capsuleDist)
+    capsuleDist = sdf_Capsule(p, ti.Vector([2,3,6]), ti.Vector([4,4,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,5,6]), ti.Vector([1,4,6]), 0.2)
+    d = min(planeDist, sphereDist, capsuleDist, capsuleDist2)
     if d == planeDist:
       intersection_object = PLANE
     else:
@@ -337,11 +338,11 @@ def clamp(p):
 
 @ti.func
 def GetLight(p, t, hit, nor, step):
-    lightPos = ti.Vector([0.0 + ti.sin(t), 5.0, 6.0 + ti.cos(t)])
+    lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
 
     l = normalize(lightPos - p)
     n = GetNormal(p, t)
-    if hit == 5: #particles
+    if hit == PARTICLES: #particles
         n = nor
     else: #sphere or plane
         n = GetNormal(p, t)
@@ -372,19 +373,19 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 3.0
+        starting_y = 5.0
         ending_y = 1.0
         motion_y = -t*4
   
-        ro = ti.Vector([0.0, starting_y , 1.0])
-        lookat = ti.Vector([0.0, starting_y, 6.0])
+        ro = ti.Vector([1.0, starting_y , 1.0])
+        lookat = ti.Vector([1.0, starting_y, 6.0])
 
         if starting_y + motion_y > ending_y:
-          ro = ti.Vector([0.0, starting_y + motion_y, 1.0])
-          lookat = ti.Vector([0.0, starting_y + motion_y, 6.0]) 
+          ro = ti.Vector([1.0, starting_y + motion_y, 1.0])
+          lookat = ti.Vector([1.0, starting_y + motion_y, 6.0]) 
         else:
-          ro = ti.Vector([0.0, ending_y, 1.0])
-          lookat = ti.Vector([0.0, ending_y, 6.0])
+          ro = ti.Vector([1.0, ending_y, 1.0])
+          lookat = ti.Vector([1.0, ending_y, 6.0])
 
         zoom = 1.0
 
@@ -402,12 +403,12 @@ def paint(t: ti.f32):
         p = ro + rd * d
         light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
 
-        if intersection_object == 8: #if it hit the plane
+        if intersection_object == PLANE: #if it hit the plane
             fin = light * plane_color
-        elif intersection_object == 7: #if it hit the sphere
+        elif intersection_object == SPHERE: #if it hit the sphere
             fin = light * sphere_color
 
-        elif intersection_object == 5: #if it hit the particle
+        elif intersection_object == PARTICLES: #if it hit the particle
             fin = light * particle_color
 
         pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
