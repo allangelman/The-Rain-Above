@@ -117,10 +117,25 @@ def GetDist(p, t):
 
 @ti.func
 def inside_particle_grid(ipos):
-    pos = 10*(ipos/particle_grid_res)
+    # pos = 10*(ipos/particle_grid_res)
+    pos = grid_to_world(ipos)
     return bbox[0][0] <= pos[0] and pos[0] < bbox[1][0] and bbox[0][1] <= pos[
         1] and pos[1] < bbox[1][1] and bbox[0][2] <= pos[2] and pos[2] < bbox[
             1][2]
+
+@ti.func
+def grid_to_world_forkernel(x):
+  return (x*10) / particle_grid_res 
+
+def grid_to_world(x):
+  return (x*10) / particle_grid_res 
+
+@ti.func
+def world_to_grid_forkernel(x):
+  return (x * particle_grid_res) / 10
+
+def world_to_grid(x):
+  return (x * particle_grid_res) / 10 
 
 
 @ti.kernel
@@ -129,7 +144,8 @@ def initialize_particle_grid():
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
-        ipos = ti.Matrix.floor((x * particle_grid_res)/10).cast(ti.i32) #particle postion to grid coorid
+        # ipos = ti.Matrix.floor((x * particle_grid_res)/10).cast(ti.i32) #particle postion to grid coorid
+        ipos = ti.Matrix.floor(world_to_grid_forkernel(x)).cast(ti.i32) #particle postion to grid coorid
         for i in range(-support, support + 1):
             for j in range(-support, support + 1):
                 for k in range(-support, support + 1):
@@ -137,9 +153,11 @@ def initialize_particle_grid():
                     box_ipos = ipos + offset
                     if inside_particle_grid(box_ipos):
                         # box_min = box_ipos * (1/particle_grid_res)
-                        box_min = box_ipos * (10/ particle_grid_res) 
+                        # box_min = box_ipos * (10/ particle_grid_res) 
+                        box_min = grid_to_world_forkernel(box_ipos)
                         # box_max = (box_ipos + ti.Vector([1, 1, 1])) * (1 / particle_grid_res)
-                        box_max = (box_ipos + ti.Vector([1, 1, 1])) * (10 / particle_grid_res)
+                        # box_max = (box_ipos + ti.Vector([1, 1, 1])) * (10 / particle_grid_res)
+                        box_max = grid_to_world_forkernel((box_ipos + ti.Vector([1, 1, 1])))
 
                         # if sphere_aabb_intersect_motion(
                         #         box_min, box_max, x - 0.5 * shutter_time * v,
@@ -181,7 +199,8 @@ def dda_particle(eye_pos, d, t, step):
             else:
                 rsign[i] = -1
 
-        o = (particle_grid_res * pos)/ 10.0
+        # o = (particle_grid_res * pos)/ 10.0
+        o = world_to_grid(pos)
         # o = grid_res * pos 
         ipos = ti.Matrix.floor(o).cast(int)
         dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
@@ -303,6 +322,12 @@ def clear_pid():
         ti.deactivate(pid.parent(), [i, j, k])
 
 
+
+# grid_to_world((world_to_grid(np_x.min) - 3))
+# @ti.func def world_to_grid(x): return x / 10 * partile_grid_res 
+#make two versions of these functions, ti.func and python (call ti.func version in kernel)
+#setting min and max to 0 and 10 
+
 @ti.kernel
 def paint(t: ti.f32):
     fin = ti.Vector([0.0, 0.0, 0.0]) # Parallized over all pixels
@@ -414,14 +439,15 @@ def main():
             # max_val = 10*(math.floor(np_x[:, i].max() * particle_grid_res) + 
             #           3) / particle_grid_res
 
-            min_val = (math.floor(np_x[:, i].min()) / 10 * particle_grid_res - 3) / (particle_grid_res / 10)
-            max_val = (math.floor(np_x[:, i].max()) / 10 * particle_grid_res + 3) / (particle_grid_res / 10)
+            # min_val = ( math.floor( np_x[:, i].min() ) / 10 * particle_grid_res - 3 ) / (particle_grid_res / 10)
+            min_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].min())) - 3 ) 
+
+            # max_val = (math.floor(np_x[:, i].max()) / 10 * particle_grid_res + 3) / (particle_grid_res / 10)
+            max_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].max())) + 3 ) 
+
+
             if min_val < 0:
               min_val = 0
-            # grid_to_world((world_to_grid(np_x.min) - 3))
-            # @ti.func def world_to_grid(x): return x / 10 * partile_grid_res 
-            #make two versions of these functions, ti.func and python (call ti.func version in kernel)
-            #setting min and max to 0 and 10 
 
             # min_val = 0
             # max_val = 10
