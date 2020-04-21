@@ -366,60 +366,83 @@ def clear_pid():
 
 @ti.kernel
 def paint(t: ti.f32):
-    # Parallized over all pixels
-    # fin = ti.Vector([0.0, 0.0, 0.0])
-    # intensity = 0.0
+    fin = ti.Vector([0.0, 0.0, 0.0]) # Parallized over all pixels
+    intensity = 0.0
 
-    # for i,j in pixels: 
-    #     uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
-    #     ro = ti.Vector([0.0, 1.0, 1.0])
-    #     rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    for i,j in pixels: 
+        uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+        
+        starting_y = 3.0
+        ending_y = 1.0
+        motion_y = -t*4
+  
+        ro = ti.Vector([0.0, starting_y , 1.0])
+        lookat = ti.Vector([0.0, starting_y, 6.0])
 
-    #     d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
-    #     p = ro + rd * d
-    #     light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
+        if starting_y + motion_y > ending_y:
+          ro = ti.Vector([0.0, starting_y + motion_y, 1.0])
+          lookat = ti.Vector([0.0, starting_y + motion_y, 6.0]) 
+        else:
+          ro = ti.Vector([0.0, ending_y, 1.0])
+          lookat = ti.Vector([0.0, ending_y, 6.0])
 
-    #     if intersection_object == 8: #if it hit the plane
-    #         fin = light * plane_color
-    #     elif intersection_object == 7: #if it hit the sphere
-    #         fin = light * sphere_color
+        zoom = 1.0
 
-    #     elif intersection_object == 5: #if it hit the particle
-    #         fin = light * particle_color
+        forward = ti.normalized(lookat - ro)
+        right = ti.cross(ti.Vector([0.0, 1.0, 0.0]), forward)
+        up = ti.cross(forward, right)
 
-    #     pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
+        center = ro + forward*zoom
+        intersection = center + uv[0]*right + uv[1]*up
+        rd = ti.normalized(intersection - ro)
+
+        # rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+
+        d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
+        p = ro + rd * d
+        light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
+
+        if intersection_object == 8: #if it hit the plane
+            fin = light * plane_color
+        elif intersection_object == 7: #if it hit the sphere
+            fin = light * sphere_color
+
+        elif intersection_object == 5: #if it hit the particle
+            fin = light * particle_color
+
+        pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
 
 ##############  MOTION BLUR ATTEMPT 1 ################
-    original_t = t
-    # step(t+0.03)
-    for i in range(n*2): #this is parallilized
-        for j in range(n):
-            for x in range(3):
-                step_t = original_t + frameTime*x
-                uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
-                ro = ti.Vector([0.0, 1.0, 1.0])
-                rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
+    # original_t = t
+    # # step(t+0.03)
+    # for i in range(n*2): #this is parallilized
+    #     for j in range(n):
+    #         for x in range(3):
+    #             step_t = original_t + frameTime*x
+    #             uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+    #             ro = ti.Vector([0.0, 1.0, 1.0])
+    #             rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
 
-                d, no, intersection_object, sdf = rayCast(ro, rd, step_t, frameTime*x)
-                p = ro + rd * d
-                light = GetLight(p, step_t, intersection_object, no, frameTime*x)
+    #             d, no, intersection_object, sdf = rayCast(ro, rd, step_t, frameTime*x)
+    #             p = ro + rd * d
+    #             light = GetLight(p, step_t, intersection_object, no, frameTime*x)
               
-                # rendering the backgound initially, do this at the beginning of each 3 frame loop
-                if x == 0:
-                  sdf_p = ro + rd * sdf
-                  # putting in SPHERE so that it renders the background instead of the particles
-                  sdf_light = GetLight(sdf_p, original_t, SPHERE, no, frameTime*x)
-                  pixels[i, j] = ti.Vector([sdf_light, sdf_light, sdf_light, 1.0]) #color
+    #             # rendering the backgound initially, do this at the beginning of each 3 frame loop
+    #             if x == 0:
+    #               sdf_p = ro + rd * sdf
+    #               # putting in SPHERE so that it renders the background instead of the particles
+    #               sdf_light = GetLight(sdf_p, original_t, SPHERE, no, frameTime*x)
+    #               pixels[i, j] = ti.Vector([sdf_light, sdf_light, sdf_light, 1.0]) #color
               
-                # rendering the particles at the third time step most opaque, the ones at the second and first less opaque to create a trail effect
-                if intersection_object == PARTICLES:
-                  if x == 0:
-                      # doing pixel = pixels + ... to add the particle color value on top of the background
-                      pixels[i, j] += ti.Vector([light * 0.1, light * 0.1, light * 0.1, 1.0])
-                  if x == 1:
-                      pixels[i, j] += ti.Vector([light * 0.3, light * 0.3, light * 0.3, 1.0])
-                  if x == 2:
-                      pixels[i, j] += ti.Vector([light * 0.6, light * 0.6, light * 0.6, 1.0])
+    #             # rendering the particles at the third time step most opaque, the ones at the second and first less opaque to create a trail effect
+    #             if intersection_object == PARTICLES:
+    #               if x == 0:
+    #                   # doing pixel = pixels + ... to add the particle color value on top of the background
+    #                   pixels[i, j] += ti.Vector([light * 0.1, light * 0.1, light * 0.1, 1.0])
+    #               if x == 1:
+    #                   pixels[i, j] += ti.Vector([light * 0.3, light * 0.3, light * 0.3, 1.0])
+    #               if x == 2:
+    #                   pixels[i, j] += ti.Vector([light * 0.6, light * 0.6, light * 0.6, 1.0])
 ##############  MOTION BLUR ATTEMPT 1 ################            
       
 
