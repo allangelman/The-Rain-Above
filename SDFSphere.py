@@ -35,19 +35,10 @@ pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
 bbox = ti.Vector(3, dt=ti.f32, shape=2)
 particle_grid_res = 64
-# inv_dx = 64.0
-# dx = 1.0 / inv_dx
 particle_x = ti.Vector(3, dt=ti.f32)
 particle_v = ti.Vector(3, dt=ti.f32)
-# grid_density = ti.var(dt=ti.i32)
 fin = 0.0
-# grid_visualization_block_size = 2
 max_num_particles = 1024 * 1024 * 4
-# grid_resolution = 8 // grid_visualization_block_size
-# hit_sphere = 0
-#make world size constant and fix it through the code
-#fix magic numbers (0.03)
-#make enum variables instead of strings (capitilized constants)
 
 @ti.layout
 def buffers():
@@ -55,10 +46,7 @@ def buffers():
         ti.ijk, 8).place(voxel_has_particle)
     ti.root.dense(ti.ijk, 4).pointer(ti.ijk, particle_grid_res // 8).dense(
         ti.ijk, 8).dynamic(ti.l, max_num_particles_per_cell, 512).place(pid)
-
     ti.root.dense(ti.l, max_num_particles).place(particle_x, particle_v)
-    # ti.root.dense(ti.ijk, grid_resolution // 8).dense(ti.ijk,
-    #                                                   8).place(grid_density)
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
@@ -138,7 +126,6 @@ def inside_particle_grid(ipos):
 @ti.kernel
 def initialize_particle_grid():
     for p in range(num_particles[None]):
-        # print(p)
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -148,20 +135,11 @@ def initialize_particle_grid():
                 for k in range(-support, support + 1):
                     offset = ti.Vector([i, j, k])
                     box_ipos = ipos + offset
-                    # print(box_ipos[0])
-                    # print(box_ipos[1])
-                    # print(box_ipos[2])
                     if inside_particle_grid(box_ipos):
                         # box_min = box_ipos * (1/particle_grid_res)
                         box_min = box_ipos * (10/ particle_grid_res) 
                         # box_max = (box_ipos + ti.Vector([1, 1, 1])) * (1 / particle_grid_res)
                         box_max = (box_ipos + ti.Vector([1, 1, 1])) * (10 / particle_grid_res)
-                        # print(box_min[0])
-                        # print(box_min[1])
-                        # print(box_min[2])
-                        # print(box_max[0])
-                        # print(box_max[1])
-                        # print(box_max[2])
 
                         # if sphere_aabb_intersect_motion(
                         #         box_min, box_max, x - 0.5 * shutter_time * v,
@@ -174,9 +152,6 @@ def initialize_particle_grid():
 @ti.func
 def dda_particle(eye_pos, d, t, step):
 
-    # grid_res = particle_grid_res  #8
-
-    # bounding box
     bbox_min = bbox[0]
     bbox_max = bbox[1]
 
@@ -194,25 +169,7 @@ def dda_particle(eye_pos, d, t, step):
     near = max(0, near)
 
     closest_intersection = inf
-    ######## rendering 10 particles with no DDA########
-    # for k in range(mpm.n_particles):
-    #   pos = mpm.x[k]
-    #   x = ti.Vector([ pos[0], pos[1], pos[2]])
-    #   # p = pid[ipos[0], ipos[1], ipos[2], k]
-    #   # v = particle_v[p]
-    #   # x = particle_x[p] + t * v
-    #   # color = particle_color[p]
-    #   # ray-sphere intersection
-    #   dist, poss = intersect_sphere(eye_pos, d, x, 0.1)
-    #   hit_pos = poss
-    #   if dist < closest_intersection and dist > 0:
-    #     hit_pos = eye_pos + dist * d
-    #     closest_intersection = dist
-    #     normal = ti.Matrix.normalized(hit_pos - x)
-    # return closest_intersection, normal
-    ####################################################
 
-    # print(inter)
     if inter:
         pos = eye_pos + d * (near + eps)
 
@@ -223,7 +180,7 @@ def dda_particle(eye_pos, d, t, step):
                 rsign[i] = 1
             else:
                 rsign[i] = -1
-        #missing coeficient 
+
         o = (particle_grid_res * pos)/ 10.0
         # o = grid_res * pos 
         ipos = ti.Matrix.floor(o).cast(int)
@@ -232,42 +189,25 @@ def dda_particle(eye_pos, d, t, step):
         # DDA for voxels with at least one particle
         while running:
             inside = inside_particle_grid(ipos)
-            # print(inside)
             if inside:
-                # print(inside)
                 # once we actually intersect with a voxel that contains at least one particle, loop over the particle list
                 num_particles = voxel_has_particle[ipos]
                 if num_particles != 0:
                     num_particles = ti.length(pid.parent(), ipos)
-                    # print (num_particles)
                 for k in range(num_particles):
-                    # print(k)
                     p = pid[ipos[0], ipos[1], ipos[2], k]
-                    # pos = mpm.x[p]
                     v = mpm.v[p]
-                    # x = mpm.x[p]
-                    # if step == 0:
-                    #     x = mpm.x[p]
-                    # else:
                     x = mpm.x[p] + step * mpm.v[p]
-                    # x = mpm.x[p]
-                    # x = ti.Vector([ pos[0], pos[1], pos[2]])
-                    # p = pid[ipos[0], ipos[1], ipos[2], k]
-                    # v = particle_v[p] #motion blur-- whatever moves should have this
-                    # x = particle_x[p] + t * v
-                    # color = particle_color[p]
-                    # ray-sphere intersection
+
                     dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
                     hit_pos = poss
                     if dist < closest_intersection and dist > 0:
                         hit_pos = eye_pos + dist * d
                         closest_intersection = dist
                         normal = ti.Matrix.normalized(hit_pos - x)
-                        # c = color
             else:
                 running = 0
                 normal = [0, 0, 0]
-            # print(1)
             if closest_intersection < inf:
                 running = 0
             else:
@@ -307,13 +247,10 @@ def rayCast(eye_pos, d, t, step):
     if min(sdf_dis, particle_dis) == particle_dis:
         intersection_object = PARTICLES
     return min(sdf_dis, particle_dis), normal, intersection_object, sdf_dis
-    # return particle_dis
-
 
 @ti.func
 def normalize(p):
     return ti.Vector([p[0] / length(p), p[1] / length(p), p[2] / length(p)])
-
 
 @ti.func
 def GetNormal(p, t):
@@ -361,7 +298,6 @@ def GetLight(p, t, hit, nor, step):
 def clear_pid():
     for i, j, k in voxel_has_particle:
         voxel_has_particle[i, j, k] = 0
-        # ti.deactivate(pid.parent(), [i, j, k])
     for i, j, k in ti.ndrange(particle_grid_res * 4, particle_grid_res * 4,
                               particle_grid_res * 4):
         ti.deactivate(pid.parent(), [i, j, k])
@@ -398,8 +334,6 @@ def paint(t: ti.f32):
         center = ro + forward*zoom
         intersection = center + uv[0]*right + uv[1]*up
         rd = ti.normalized(intersection - ro)
-
-        # rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
 
         d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
         p = ro + rd * d
@@ -447,60 +381,6 @@ def paint(t: ti.f32):
     #               if x == 2:
     #                   pixels[i, j] += ti.Vector([light * 0.6, light * 0.6, light * 0.6, 1.0])
 ##############  MOTION BLUR ATTEMPT 1 ################            
-      
-
-##############  MOTION BLUR ATTEMPT 2 ################
-    # fin = ti.Vector([0.0, 0.0, 0.0])
-    # intensity = 0.0
-
-    # for i,j in pixels: 
-    #     pixels[i, j] = ti.Vector([0, 0, 0, 1.0]) #color
-    # for x in range(3):
-    #     for i in range(n*2): 
-    #         for j in range(n): 
-    #             uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
-    #             ro = ti.Vector([0.0, 1.0, 1.0])
-    #             rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
-    #             # for x in range(3):
-    #             d, no, intersection_object = rayCast(ro, rd, t+(0.03*x), 0.03*x)
-    #             p = ro + rd * d
-    #             light = GetLight(p, t+(0.03*x), intersection_object, no, 0.03*x)
-    #             #     if x == 0:
-    #             #         intensity = intensity + (light * 0.1)
-    #             #     if x == 1:
-    #             #         intensity = intensity + (light * 0.3)
-    #             #     if x == 2:
-    #             #         intensity = intensity + (light * 0.6)
-    #             if x == 0:
-    #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.1), intensity + (light * 0.1), intensity + (light * 0.1), 1.0])
-    #             if x == 1:
-    #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.3), intensity + (light * 0.3), intensity + (light * 0.3), 1.0])
-    #             if x == 2:
-    #                 pixels[i, j] = pixels[i, j] + ti.Vector([intensity + (light * 0.6), intensity + (light * 0.6), intensity + (light * 0.6), 1.0])
-    ##############  MOTION BLUR ATTEMPT 2 ################
-
-
-    ##############  MOTION BLUR ATTEMPT 3 ################
-    # fin = 0.0
-    # for x in range(3):
-    #     for i in range(n*2): 
-    #         for j in range(n): 
-    #             uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
-    #             ro = ti.Vector([0.0, 1.0, 1.0])
-    #             rd = ti.normalized(ti.Vector([uv[0], uv[1], 1.0]))
-              
-    #             d, no, intersection_object= rayCast(ro, rd, t+(0.03*x), 0.03*x)
-    #             p = ro + rd * d
-    #             light = GetLight(p, t+(0.03*x), intersection_object, no, 0.03*x)
-    #             if x == 0:
-    #                 fin = fin + (light * 0.1)
-    #             if x == 1:
-    #                 fin = fin + (light * 0.3)
-    #             if x == 2:
-    #                 fin = fin + (light * 0.6)
-          
-    #             pixels[i, j] = ti.Vector([fin, fin, fin, 1.0]) #color
-    ##############  MOTION BLUR ATTEMPT 3 ################
 
 gui = ti.GUI("Fractl", (n * 2, n))
 
@@ -520,19 +400,10 @@ def main():
     for frame in range(1000000):
         clear_pid()
         mpm.step(3e-2, frame * frameTime)
-        # colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
+  
         np_x, np_v, np_material = mpm.particle_info()
-        # npx_new = np_x/10.0
-        # part_x = np_x.item((20,0))
-        # part_y = np_x.item((20,1))
-        # part_z = np_x.item((20,2))
-        # print(frame)
+        
         for i in range(3):
-
-            # bbox values must be multiples of dx
-            #   print(np_x[:, i].min())
-            #   print(np_x[:, i].max())
-          
             # min_val = (math.floor(np_x[:, i].min() * particle_grid_res) - 
             #           3) / particle_grid_res
             # max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 
@@ -555,55 +426,17 @@ def main():
             # min_val = 0
             # max_val = 10
 
-            # print(min)
-            # print(max)
-            # if min_val == math.nan:
-            #   # print("hi")
-            #   min_val = -n/2
-            # if max_val == math.nan:
-            #   # print("by")
-            #   max_val = n/2
-
-            # bbox[0][i] = min_val
             bbox[1][i] = max_val
             bbox[0][i] = min_val
-            # print(bbox[0][i])
-            # print(bbox[1][i])
 
         #clear particle grid and pid voxel has particle
-        # print('num_input_particles =', num_part)
-
-        # for k in ti.static(range(27)):
-        #   base_coord = (inv_dx * particle_x[i] - 0.5).cast(ti.i32) + ti.Vector(
-        #       [k // 9, k // 3 % 3, k % 3])
-        #   grid_density[base_coord // grid_visualization_block_size] = 1
-
         initialize_particle_x(np_x, np_v)
         initialize_particle_grid()
 
         #smaller timestep or implicit time integrator for water/snow error
-
-        # part = ti.Vector([np_x.item((0,0)), np_x.item((0,1)), np_x.item((0,2))])
-        # np_x = np_x / 10.0
-
-        # # simple camera transform
-        # # screen_x = ((np_x[:, 0] + np_x[:, 2]) / 2 ** 0.5) - 0.2
-        # screen_x = (np_x[:, 0])
-        # screen_y = (np_x[:, 1])
-
-        # screen_pos = np.stack([screen_x, screen_y], axis=1)
-        # casted = ti.cast(np_x, ti.ext_arr())
-        # mat_int = mat.cast(int)
-        # mat_int2 = mat.cast(ti.i32)
-        # size = np_x.size
-
-        # for x in range(3):  
-        #     clear_pid()
         paint(frame * frameTime)
         
         gui.set_image(pixels)
-        # gui.circle([0 / 10, 1 / 10], radius=20, color=0xFF0000)
-        # gui.circles(screen_pos, radius=1.5, color=colors[np_material])
         gui.show()
 
 
