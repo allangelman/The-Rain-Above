@@ -8,13 +8,13 @@ from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
   intersect_sphere, sphere_aabb_intersect_motion, inside_taichi
 
 ti.require_version(0, 5, 10)
-ti.init(arch=ti.x64)
+ti.init(arch=ti.x64, debug=True)
 
 n = 320
 m = 20
 hit_sphere = 0
 pixels = ti.Vector(4, dt=ti.f32, shape=(n * 2, n))
-support = 2
+support = 1
 shutter_time = 0.5e-3
 sphere_radius = 0.03
 MAX_STEPS = 100
@@ -34,16 +34,16 @@ PARTICLES = 5
 pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
 bbox = ti.Vector(3, dt=ti.f32, shape=2)
-particle_grid_res = 8
-inv_dx = 8.0
-dx = 1.0 / inv_dx
+particle_grid_res = 64
+# inv_dx = 64.0
+# dx = 1.0 / inv_dx
 particle_x = ti.Vector(3, dt=ti.f32)
 particle_v = ti.Vector(3, dt=ti.f32)
 # grid_density = ti.var(dt=ti.i32)
 fin = 0.0
-grid_visualization_block_size = 2
+# grid_visualization_block_size = 2
 max_num_particles = 1024 * 1024 * 4
-grid_resolution = 8 // grid_visualization_block_size
+# grid_resolution = 8 // grid_visualization_block_size
 # hit_sphere = 0
 #make world size constant and fix it through the code
 #fix magic numbers (0.03)
@@ -129,7 +129,7 @@ def GetDist(p, t):
 
 @ti.func
 def inside_particle_grid(ipos):
-    pos = ipos * dx
+    pos = 10*(ipos/particle_grid_res)
     return bbox[0][0] <= pos[0] and pos[0] < bbox[1][0] and bbox[0][1] <= pos[
         1] and pos[1] < bbox[1][1] and bbox[0][2] <= pos[2] and pos[2] < bbox[
             1][2]
@@ -141,8 +141,8 @@ def initialize_particle_grid():
         # print(p)
         x = mpm.x[p]
         v = mpm.v[p]
-        ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
-        # ipos = ti.Matrix.floor((x * particle_grid_res)/10).cast(ti.i32) #particle postion to grid coorid
+        # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
+        ipos = ti.Matrix.floor((x * particle_grid_res)/10).cast(ti.i32) #particle postion to grid coorid
         for i in range(-support, support + 1):
             for j in range(-support, support + 1):
                 for k in range(-support, support + 1):
@@ -152,28 +152,29 @@ def initialize_particle_grid():
                     # print(box_ipos[1])
                     # print(box_ipos[2])
                     if inside_particle_grid(box_ipos):
-                        box_min = box_ipos * (1/particle_grid_res)
-                        # box_min = box_ipos * (10/ particle_grid_res) 
-                        box_max = (box_ipos + ti.Vector([1, 1, 1])) * (1 / particle_grid_res)
-                        # box_max = (box_ipos + ti.Vector([1, 1, 1])) * (10 / particle_grid_res)
+                        # box_min = box_ipos * (1/particle_grid_res)
+                        box_min = box_ipos * (10/ particle_grid_res) 
+                        # box_max = (box_ipos + ti.Vector([1, 1, 1])) * (1 / particle_grid_res)
+                        box_max = (box_ipos + ti.Vector([1, 1, 1])) * (10 / particle_grid_res)
                         # print(box_min[0])
                         # print(box_min[1])
                         # print(box_min[2])
                         # print(box_max[0])
                         # print(box_max[1])
                         # print(box_max[2])
-                        if sphere_aabb_intersect_motion(
-                                box_min, box_max, x - 0.5 * shutter_time * v,
-                                x + 0.5 * shutter_time * v, sphere_radius):
+
+                        # if sphere_aabb_intersect_motion(
+                        #         box_min, box_max, x - 0.5 * shutter_time * v,
+                        #         x + 0.5 * shutter_time * v, sphere_radius):
                             # print(voxel_has_particle[box_ipos])
-                            ti.append(pid.parent(), box_ipos, p)
-                            voxel_has_particle[box_ipos] = 1
+                        ti.append(pid.parent(), box_ipos, p)
+                        voxel_has_particle[box_ipos] = 1
 
 
 @ti.func
 def dda_particle(eye_pos, d, t, step):
 
-    grid_res = particle_grid_res  #8
+    # grid_res = particle_grid_res  #8
 
     # bounding box
     bbox_min = bbox[0]
@@ -223,8 +224,8 @@ def dda_particle(eye_pos, d, t, step):
             else:
                 rsign[i] = -1
         #missing coeficient 
-        # o = grid_res * pos * 10
-        o = grid_res * pos 
+        o = (particle_grid_res * pos)/ 10.0
+        # o = grid_res * pos 
         ipos = ti.Matrix.floor(o).cast(int)
         dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
         running = 1
@@ -240,6 +241,7 @@ def dda_particle(eye_pos, d, t, step):
                     num_particles = ti.length(pid.parent(), ipos)
                     # print (num_particles)
                 for k in range(num_particles):
+                    # print(k)
                     p = pid[ipos[0], ipos[1], ipos[2], k]
                     # pos = mpm.x[p]
                     v = mpm.v[p]
@@ -265,7 +267,7 @@ def dda_particle(eye_pos, d, t, step):
             else:
                 running = 0
                 normal = [0, 0, 0]
-
+            # print(1)
             if closest_intersection < inf:
                 running = 0
             else:
@@ -520,6 +522,7 @@ def main():
         mpm.step(3e-2, frame * frameTime)
         # colors = np.array([0x068587, 0xED553B, 0xEEEEF0], dtype=np.uint32)
         np_x, np_v, np_material = mpm.particle_info()
+        # npx_new = np_x/10.0
         # part_x = np_x.item((20,0))
         # part_y = np_x.item((20,1))
         # part_z = np_x.item((20,2))
@@ -530,10 +533,28 @@ def main():
             #   print(np_x[:, i].min())
             #   print(np_x[:, i].max())
           
-            min_val = (math.floor(np_x[:, i].min() * particle_grid_res) - 
-                      3) / particle_grid_res
-            max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 
-                      3) / particle_grid_res
+            # min_val = (math.floor(np_x[:, i].min() * particle_grid_res) - 
+            #           3) / particle_grid_res
+            # max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 
+            #           3) / particle_grid_res
+            
+            # min_val = 10*(math.floor(np_x[:, i].min() * particle_grid_res) - 
+            #           3) / particle_grid_res
+            # max_val = 10*(math.floor(np_x[:, i].max() * particle_grid_res) + 
+            #           3) / particle_grid_res
+
+            min_val = (math.floor(np_x[:, i].min()) / 10 * particle_grid_res - 3) / (particle_grid_res / 10)
+            max_val = (math.floor(np_x[:, i].max()) / 10 * particle_grid_res + 3) / (particle_grid_res / 10)
+            if min_val < 0:
+              min_val = 0
+            # grid_to_world((world_to_grid(np_x.min) - 3))
+            # @ti.func def world_to_grid(x): return x / 10 * partile_grid_res 
+            #make two versions of these functions, ti.func and python (call ti.func version in kernel)
+            #setting min and max to 0 and 10 
+
+            # min_val = 0
+            # max_val = 10
+
             # print(min)
             # print(max)
             # if min_val == math.nan:
@@ -546,8 +567,8 @@ def main():
             # bbox[0][i] = min_val
             bbox[1][i] = max_val
             bbox[0][i] = min_val
-            print(bbox[0][i])
-            print(bbox[1][i])
+            # print(bbox[0][i])
+            # print(bbox[1][i])
 
         #clear particle grid and pid voxel has particle
         # print('num_input_particles =', num_part)
