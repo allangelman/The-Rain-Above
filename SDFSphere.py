@@ -50,7 +50,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[0, 5, 6],
+mpm.add_cube(lower_corner=[0, 7, 6],
              cube_size=[3, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -110,7 +110,7 @@ def rotate(a):
     c = ti.cos(a)
     return ti.Matrix([[c, -s], [s, c]])
 @ti.func
-def rotate_axis_x(box_position, rot_mat, axis):
+def rotate_axis_x(box_position, rot_mat):
     rotated_y = rot_mat[0,0] * box_position[1] + rot_mat[1,0] * box_position[2] 
     rotated_z = rot_mat[0,1] * box_position[1] + rot_mat[1,1] * box_position[2] 
     box_position_rotated = ti.Vector([box_position[0], rotated_y, rotated_z])
@@ -118,7 +118,7 @@ def rotate_axis_x(box_position, rot_mat, axis):
     return box_position_rotated
 
 @ti.func
-def rotate_axis_y(box_position, rot_mat, axis):
+def rotate_axis_y(box_position, rot_mat):
     rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[2] 
     rotated_z = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[2] 
     box_position_rotated = ti.Vector([rotated_x, box_position[1], rotated_z])
@@ -126,7 +126,7 @@ def rotate_axis_y(box_position, rot_mat, axis):
     return box_position_rotated
 
 @ti.func
-def rotate_axis_z(box_position, rot_mat, axis):
+def rotate_axis_z(box_position, rot_mat):
     rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[1] 
     rotated_y = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[1] 
     box_position_rotated = ti.Vector([rotated_x, rotated_y, box_position[2]])
@@ -148,8 +148,8 @@ def GetDist(p, t):
     capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,5,6]), ti.Vector([1,4,6]), 0.2)
     
     rot_mat = rotate(t)
-    box_position = p - ti.Vector([-3.0, 1, 6.0])
-    box_position_rotated = rotate_axis_z(box_position, rot_mat, 2)
+    box_position = p - ti.Vector([1, 6, 6])
+    box_position_rotated = rotate_axis_z(box_position, rot_mat)
 
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.01, 0.25]))
     
@@ -382,7 +382,7 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 5.0
+        starting_y = 7.5
         ending_y = 1.0
         motion_y = -t*4
   
