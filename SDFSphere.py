@@ -139,9 +139,25 @@ def rotate_axis_z(box_position, rot_mat):
 def GetDist(p, t):
     intersection_object = 0
     
-    s = ti.Vector([0, 1.0, 6.0, 1.0**0.5])
+    s = ti.Vector([0, 1.0, 6.0, 1.25**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
+
+    s2 = ti.Vector([1.0, 0.8, 6.0, 0.9**0.5])
+    dist2 = p - xyz(s2)
+    sphereDist2 = length(dist2) - s2[3]
+   
+    s3 = ti.Vector([2.0, 0.5, 6.0, 0.4**0.5])
+    dist3 = p - xyz(s3)
+    sphereDist3 = length(dist3) - s3[3]
+
+    s4 = ti.Vector([2.6, 0.2, 6.0, 0.2**0.5])
+    dist4 = p - xyz(s4)
+    sphereDist4 = length(dist4) - s4[3]
+
+    s5 = ti.Vector([-1, 0.8, 6.0, 0.7**0.5])
+    dist5 = p - xyz(s5)
+    sphereDist5 = length(dist5) - s5[3]
     
     planeDist = p[1]
     
@@ -156,8 +172,11 @@ def GetDist(p, t):
     box_position2 = p - ti.Vector([1, 6, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
     boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.01, 1, 0.25]))
+
+    # box_position3 = p - ti.Vector([0.7, 0.1, 6])
+    # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
     
-    d = min(planeDist, sphereDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
+    d = min(planeDist, sphereDist, capsuleDist, capsuleDist2, boxDist, boxDist2, sphereDist2, sphereDist3, sphereDist4, sphereDist5)
     if d == planeDist:
       intersection_object = PLANE
     else:
@@ -386,7 +405,7 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 7.5
+        starting_y = 7.0
         ending_y = 1.0
         motion_y = -t*4
   
