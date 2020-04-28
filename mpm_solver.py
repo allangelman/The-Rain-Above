@@ -10,6 +10,13 @@ def clamp(p):
       p = 1
   return p
 
+def capsule(grid_pos, a, b):
+    ab = a - b
+    ap = grid_pos - b
+    t = ti.dot(ab, ap) / ti.dot(ab, ab)
+    t_clamped = clamp(t)
+    return b + t_clamped*ab
+
 @ti.data_oriented
 class MPMSolver:
     material_water = 0
@@ -155,18 +162,9 @@ class MPMSolver:
                             1.0**0.5 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     
-                    ab = ti.Vector([2,3,6]) - ti.Vector([4,4,6])
-                    ap = grid_pos - ti.Vector([4,4,6])
-                    t = ti.dot(ab, ap) / ti.dot(ab, ab)
-                    t_clamped = clamp(t)
-                    if ((grid_pos - (ti.Vector([4,4,6]) + t_clamped*ab )).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([2,3,6]), ti.Vector([4,4,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    
-                    ab2 = ti.Vector([-1,5,6]) - ti.Vector([1,4,6])
-                    ap2 = grid_pos - ti.Vector([1,4,6])
-                    t2 = ti.dot(ab2, ap2) / ti.dot(ab2, ab2)
-                    t_clamped2 = clamp(t2)
-                    if ((grid_pos - (ti.Vector([1,4,6]) + t_clamped2*ab2 )).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([-1,5,6]), ti.Vector([1,4,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     
                     # if (grid_pos - ti.Vector([3,3,3]) < 0):

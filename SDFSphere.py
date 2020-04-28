@@ -109,6 +109,7 @@ def rotate(a):
     s = ti.sin(a)
     c = ti.cos(a)
     return ti.Matrix([[c, -s], [s, c]])
+    
 @ti.func
 def rotate_axis_x(box_position, rot_mat):
     rotated_y = rot_mat[0,0] * box_position[1] + rot_mat[1,0] * box_position[2] 
