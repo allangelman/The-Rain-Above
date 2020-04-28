@@ -109,30 +109,30 @@ def rotate(a):
     s = ti.sin(a)
     c = ti.cos(a)
     return ti.Matrix([[c, -s], [s, c]])
+@ti.func
+def rotate_axis_x(box_position, rot_mat, axis):
+    rotated_y = rot_mat[0,0] * box_position[1] + rot_mat[1,0] * box_position[2] 
+    rotated_z = rot_mat[0,1] * box_position[1] + rot_mat[1,1] * box_position[2] 
+    box_position_rotated = ti.Vector([box_position[0], rotated_y, rotated_z])
+
+    return box_position_rotated
 
 @ti.func
-def rotate_axis(box_position, rot_mat, axis):
-    # rotated_x = 0.0
-    # rotated_y = 0.0
-    # rotated_z = 0.0
-    # box_position_rotated = ti.Vector([0,0,0])
-    
-    # if axis == 0:
-    #     rotated_y = rot_mat[0,0] * box_position[1] + rot_mat[1,0] * box_position[2] 
-    #     rotated_z = rot_mat[0,1] * box_position[1] + rot_mat[1,1] * box_position[2] 
-    #     box_position_rotated = ti.Vector([box_position[0], rotated_y, rotated_z])
-   
-    # if axis == 1:
-    #     rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[2] 
-    #     rotated_z = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[2] 
-    #     box_position_rotated = ti.Vector([rotated_x, box_position[1], rotated_z])
+def rotate_axis_y(box_position, rot_mat, axis):
+    rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[2] 
+    rotated_z = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[2] 
+    box_position_rotated = ti.Vector([rotated_x, box_position[1], rotated_z])
 
-    # if axis == 2:
+    return box_position_rotated
+
+@ti.func
+def rotate_axis_z(box_position, rot_mat, axis):
     rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[1] 
     rotated_y = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[1] 
     box_position_rotated = ti.Vector([rotated_x, rotated_y, box_position[2]])
     
     return box_position_rotated
+
 
 @ti.func
 def GetDist(p, t):
@@ -149,7 +149,7 @@ def GetDist(p, t):
     
     rot_mat = rotate(t)
     box_position = p - ti.Vector([-3.0, 1, 6.0])
-    box_position_rotated = rotate_axis(box_position, rot_mat, 2)
+    box_position_rotated = rotate_axis_z(box_position, rot_mat, 2)
 
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.01, 0.25]))
     
