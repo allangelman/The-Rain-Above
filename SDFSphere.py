@@ -149,13 +149,13 @@ def GetDist(p, t):
     capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,5,6]), ti.Vector([1,4,6]), 0.2)
     
     rot_mat = rotate(t)
-    box_position = p - ti.Vector([1, 4, 6])
+    box_position = p - ti.Vector([1, 6, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
-    boxDist = sdf_Box(box_position, ti.Vector([1, 0.25, 0.25]))
+    boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.01, 0.25]))
 
     box_position2 = p - ti.Vector([1, 6, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
-    boxDist2 = sdf_Box(box_position, ti.Vector([0.01, 1, 0.25]))
+    boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.01, 1, 0.25]))
     
     d = min(planeDist, sphereDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
     if d == planeDist:
