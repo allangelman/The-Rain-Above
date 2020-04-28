@@ -1,6 +1,7 @@
 import taichi as ti
 import random
 import numpy as np
+import math
 
 @ti.func
 def clamp(p):
@@ -16,6 +17,23 @@ def capsule(grid_pos, a, b):
     t = ti.dot(ab, ap) / ti.dot(ab, ab)
     t_clamped = clamp(t)
     return b + t_clamped*ab
+
+def length(a):
+    x = (a[0] * a[0])
+    y = (a[1] * a[1])
+    z = (a[2] * a[2])
+    return ti.sqrt(x + y + z)
+
+def absolute(n):
+    if n < 0:
+        n = 0
+    return n
+
+def box(p, s):
+    x = max(absolute(p[0]) - s[0], 0.0)
+    y = max(absolute(p[1]) - s[1], 0.0)
+    z = max(absolute(p[2]) - s[2], 0.0)
+    return length(ti.Vector([x, y, z]))
 
 @ti.data_oriented
 class MPMSolver:
@@ -158,14 +176,43 @@ class MPMSolver:
                     grid_pos = self.dx * I
                     # if ((grid_pos - ti.Vector([0, 1 + ti.cos(t), 6 + ti.cos(t)])).norm() - 1.0**0.5 < 0):
                     #   self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
-                    if ((grid_pos - ti.Vector([0, 1, 6])).norm() -
-                            1.0**0.5 < 0):
+                    if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 1.0**0.5 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     
                     if ((grid_pos - (capsule(grid_pos, ti.Vector([2,3,6]), ti.Vector([4,4,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     if ((grid_pos - (capsule(grid_pos, ti.Vector([-1,5,6]), ti.Vector([1,4,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
+                    
+                    # box_position = ti.Vector([1, 4, 6])
+                    # box_position_vect = (grid_pos - box_position)
+                    # s = ti.Vector([1, 0.25, 0.25])
+                    # x = max(abs(box_position_vect[0]) - s[0], 0.0)
+                    # y = max(abs(box_position_vect[1]) - s[1], 0.0)
+                    # z = max(abs(box_position_vect[2]) - s[2], 0.0)
+                    # box = ti.sqrt(x*x + y*y + z*z)
+                    # # distToCenter = (grid_pos - box_position).norm()
+                    
+                    # if ((grid_pos - box_position).norm() - box < 0):
+                    #     self.grid_v[I] = [0, 0, 0]
+                    
+        
+                    # if (grid_pos[0] < (box_position[0] + s[0]/2.0) and grid_pos[0] > (box_position[0] - s[0]/2.0)
+                    #    and grid_pos[1] < (box_position[1] + s[1]/2.0) and grid_pos[1] > (box_position[1] - s[1]/2.0)
+                    #    and grid_pos[2] < (box_position[2] + s[2]/2.0) and grid_pos[2] > (box_position[2] - s[2]/2.0)):
+                    #     self.grid_v[I] = [0, 0, 0]
+                    
+                    # if (grid_posdistToCenter - box< 0):
+                    #     self.grid_v[I][0] = 0
+                    # if (box[1] < 0):
+                    #     self.grid_v[I][1] = 0
+                    # if (box[2] < 0):
+                    #     self.grid_v[I][2] = 0
+                    
+                    # box_position2 = grid_pos - ti.Vector([1, 6, 6])
+                    # box_position_vec2 = ti.Vector([box_position2[0], box_position2[1], box_position2[2]])
+                    # if ((box(box_position_vec2, ti.Vector([0.01, 1, 0.25]))).norm() < 0):
+                    #     self.grid_v[I] = [0, 0, 0]
                     
                     # if (grid_pos - ti.Vector([3,3,3]) < 0):
                     #   self.grid_v[I] = [0,0,0]
