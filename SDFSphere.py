@@ -8,7 +8,7 @@ from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
   intersect_sphere, sphere_aabb_intersect_motion, inside_taichi
 
 ti.require_version(0, 5, 10)
-ti.init(arch=ti.x64, debug=True)
+ti.init(arch=ti.x64, debug=False)
 
 n = 320
 m = 20
@@ -97,17 +97,66 @@ def sdf_Capsule(p, a, b, r):
   c = a + t_clamped*ab
   return length(p-c) - r
 
+@ti.func
+def sdf_Box(p, s):
+    x = max(abs(p[0]) - s[0], 0.0)
+    y = max(abs(p[1]) - s[1], 0.0)
+    z = max(abs(p[2]) - s[2], 0.0)
+    return length(ti.Vector([x, y, z]))
+
+@ti.func
+def rotate(a):
+    s = ti.sin(a)
+    c = ti.cos(a)
+    return ti.Matrix([[c, -s], [s, c]])
+
+@ti.func
+def rotate_axis(box_position, rot_mat, axis):
+    rotated_x = 0
+    rotated_y = 0
+    rotated_z = 0
+    box_position_rotated = ti.Vector([0,0,0])
+    
+    if axis == 0:
+        rotated_y = rot_mat[0,0] * box_position[1] + rot_mat[1,0] * box_position[2] 
+        rotated_z = rot_mat[0,1] * box_position[1] + rot_mat[1,1] * box_position[2] 
+        box_position_rotated = ti.Vector([box_position[0], rotated_y, rotated_z])
+   
+    if axis == 1:
+        rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[2] 
+        rotated_z = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[2] 
+        box_position_rotated = ti.Vector([rotated_x, box_position[1], rotated_z])
+
+    if axis == 2:
+        rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[1] 
+        rotated_y = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[1] 
+        box_position_rotated = ti.Vector([rotated_x, rotated_y, box_position[2]])
+    
+    return box_position_rotated
 
 @ti.func
 def GetDist(p, t):
     intersection_object = 0
+    
     s = ti.Vector([0, 1.0, 6.0, 1.0**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
+    
     planeDist = p[1]
+    
     capsuleDist = sdf_Capsule(p, ti.Vector([2,3,6]), ti.Vector([4,4,6]), 0.2)
     capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,5,6]), ti.Vector([1,4,6]), 0.2)
-    d = min(planeDist, sphereDist, capsuleDist, capsuleDist2)
+    
+    rot_mat = rotate(t)
+    box_position = p - ti.Vector([-3.0, 1, 6.0])
+    # box_position_rotated = rotate_axis(box_position, rot_mat, 2)
+    rotated_x = rot_mat[0,0] * box_position[0] + rot_mat[1,0] * box_position[1] 
+    rotated_y = rot_mat[0,1] * box_position[0] + rot_mat[1,1] * box_position[1] 
+    box_position_rotated = ti.Vector([rotated_x, rotated_y, box_position[2]])
+
+    boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.01, 0.25]))
+    
+    d = min(planeDist, sphereDist, capsuleDist, capsuleDist2, boxDist)
     if d == planeDist:
       intersection_object = PLANE
     else:
