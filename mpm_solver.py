@@ -176,17 +176,18 @@ class MPMSolver:
                     grid_pos = self.dx * I
                     # if ((grid_pos - ti.Vector([0, 1 + ti.cos(t), 6 + ti.cos(t)])).norm() - 1.0**0.5 < 0):
                     #   self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
-                    if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 1.0**0.5 < 0):
-                        self.grid_v[I] = [0, 0, 0]
+                    # if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 1.0**0.5 < 0):
+                    #     self.grid_v[I] = [0, 0, 0]
                     
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([2,3,6]), ti.Vector([4,4,6])))).norm() - 0.2 < 0):
-                        self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([-1,5,6]), ti.Vector([1,4,6])))).norm() - 0.2 < 0):
-                        self.grid_v[I] = [0, 0, 0]
+                    # if ((grid_pos - (capsule(grid_pos, ti.Vector([2,3,6]), ti.Vector([4,4,6])))).norm() - 0.2 < 0):
+                    #     self.grid_v[I] = [0, 0, 0]
+                    # if ((grid_pos - (capsule(grid_pos, ti.Vector([-1,5,6]), ti.Vector([1,4,6])))).norm() - 0.2 < 0):
+                    #     self.grid_v[I] = [0, 0, 0]
                     
                     # box_position = ti.Vector([1, 4, 6])
                     # box_position_vect = (grid_pos - box_position)
-                    # s = ti.Vector([1, 0.25, 0.25])
+                    # s = ti.Vector([3, 1, 1])
+
                     # x = max(abs(box_position_vect[0]) - s[0], 0.0)
                     # y = max(abs(box_position_vect[1]) - s[1], 0.0)
                     # z = max(abs(box_position_vect[2]) - s[2], 0.0)
@@ -269,7 +270,8 @@ class MPMSolver:
         vol = 1
         for i in range(self.dim):
             vol = vol * cube_size[i]
-        num_new_particles = int(sample_density * vol / self.dx**self.dim + 1)
+        # num_new_particles = int(sample_density * vol / self.dx**self.dim + 1)
+        num_new_particles = 1
         assert self.n_particles + num_new_particles <= self.max_num_particles
 
         for i in range(self.dim):

@@ -50,8 +50,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[0, 7, 6],
-             cube_size=[3, 1, 0.5],
+mpm.add_cube(lower_corner=[1, 3, 6],
+             cube_size=[0, 0, 0],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -167,16 +167,17 @@ def GetDist(p, t):
     rot_mat = rotate(t)
     box_position = p - ti.Vector([1, 6, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
-    boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.01, 0.25]))
+    boxDist = sdf_Box(box_position, ti.Vector([1, 0.01, 1]))
 
     box_position2 = p - ti.Vector([1, 6, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
-    boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.01, 1, 0.25]))
+    boxDist2 = sdf_Box(box_position2, ti.Vector([0.01, 1, 0.25]))
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
     
-    d = min(planeDist, sphereDist, capsuleDist, capsuleDist2, boxDist, boxDist2, sphereDist2, sphereDist3, sphereDist4, sphereDist5)
+    # d = min(planeDist, sphereDist, capsuleDist, capsuleDist2, boxDist, boxDist2, sphereDist2, sphereDist3, sphereDist4, sphereDist5)
+    d = planeDist
     if d == planeDist:
       intersection_object = PLANE
     else:
@@ -209,7 +210,7 @@ def world_to_grid(x):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(num_particles[None]):
+    for p in range(1):
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -284,9 +285,9 @@ def dda_particle(eye_pos, d, t, step):
                     num_particles = ti.length(pid.parent(), ipos)
                 for k in range(num_particles):
                     p = pid[ipos[0], ipos[1], ipos[2], k]
-                    v = mpm.v[p]
-                    x = mpm.x[p] + step * mpm.v[p]
-
+                    # v = mpm.v[p]
+                    # x = mpm.x[p] + step * mpm.v[p]
+                    x = mpm.x[p]     
                     dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
                     hit_pos = poss
                     if dist < closest_intersection and dist > 0:
@@ -405,9 +406,10 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 7.0
+        starting_y = 1.0
         ending_y = 1.0
-        motion_y = -t*4
+        # motion_y = -t*4
+        motion_y = 0
   
         ro = ti.Vector([1.0, starting_y , 1.0])
         lookat = ti.Vector([1.0, starting_y, 6.0])
@@ -527,6 +529,9 @@ def main():
         #clear particle grid and pid voxel has particle
         initialize_particle_x(np_x, np_v)
         initialize_particle_grid()
+        print(mpm.x[0][0])
+        print(mpm.x[0][1])
+        print(mpm.x[0][2])
 
         #smaller timestep or implicit time integrator for water/snow error
         paint(frame * frameTime)
