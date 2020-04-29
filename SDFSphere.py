@@ -50,7 +50,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 3, 6],
+mpm.add_cube(lower_corner=[1, 2, 6],
              cube_size=[0, 0, 0],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -221,7 +221,12 @@ def initialize_particle_grid():
                 for k in range(-support, support + 1):
                     offset = ti.Vector([i, j, k])
                     box_ipos = ipos + offset
+                    # print(box_ipos[0])
                     if inside_particle_grid(box_ipos):
+                        # print(box_ipos[0])
+                        # print(box_ipos[1])
+                        # print(box_ipos[2])
+
                         # box_min = box_ipos * (1/particle_grid_res)
                         # box_min = box_ipos * (10/ particle_grid_res) 
                         box_min = grid_to_world_forkernel(box_ipos)
@@ -257,6 +262,7 @@ def dda_particle(eye_pos, d, t, step):
     near = max(0, near)
 
     closest_intersection = inf
+    # print(closest_intersection)
 
     if inter:
         pos = eye_pos + d * (near + eps)
@@ -279,16 +285,36 @@ def dda_particle(eye_pos, d, t, step):
         while running:
             inside = inside_particle_grid(ipos)
             if inside:
+                # num = 1000000000
+                # num2 = 2000000002
+                # print(ipos[0])
+                # print(ipos[1])
+                # print(ipos[2])
                 # once we actually intersect with a voxel that contains at least one particle, loop over the particle list
                 num_particles = voxel_has_particle[ipos]
                 if num_particles != 0:
+                    # print(num)
+                    # print(num_particles)
+                    world_pos = grid_to_world(ipos)
+                    # print(world_pos[0])
+                    # print(world_pos[1])
+                    # print(world_pos[2])
                     num_particles = ti.length(pid.parent(), ipos)
                 for k in range(num_particles):
+                    # print(num2)
                     p = pid[ipos[0], ipos[1], ipos[2], k]
                     # v = mpm.v[p]
                     # x = mpm.x[p] + step * mpm.v[p]
                     x = mpm.x[p]     
+                    print(x[0])
+                    print(x[1])
+                    print(x[2])
+                    
+                    print(d[0])
+                    print(d[1])
+                    print(d[2])
                     dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
+                    print(dist)
                     hit_pos = poss
                     if dist < closest_intersection and dist > 0:
                         hit_pos = eye_pos + dist * d
@@ -512,13 +538,17 @@ def main():
 
             # min_val = ( math.floor( np_x[:, i].min() ) / 10 * particle_grid_res - 3 ) / (particle_grid_res / 10)
             min_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].min())) - 3 ) 
+            # print((math.floor(np_x[:, i].min())))
+            # print(min_val)
+
 
             # max_val = (math.floor(np_x[:, i].max()) / 10 * particle_grid_res + 3) / (particle_grid_res / 10)
             max_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].max())) + 3 ) 
+            # print((math.floor(np_x[:, i].max())))
+            # print(max_val)  
 
-
-            if min_val < 0:
-              min_val = 0
+            # if min_val < 0:
+            #   min_val = 0
 
             # min_val = 0
             # max_val = 10
@@ -529,9 +559,9 @@ def main():
         #clear particle grid and pid voxel has particle
         initialize_particle_x(np_x, np_v)
         initialize_particle_grid()
-        print(mpm.x[0][0])
-        print(mpm.x[0][1])
-        print(mpm.x[0][2])
+        # print(mpm.x[0][0])
+        # print(mpm.x[0][1])
+        # print(mpm.x[0][2])
 
         #smaller timestep or implicit time integrator for water/snow error
         paint(frame * frameTime)
