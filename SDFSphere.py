@@ -22,10 +22,10 @@ MAX_DIST = 100.0
 SURF_DIST = 0.01
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
-sphere_color = ti.Vector([0.9, 0.8, 0.3])
-plane_color = ti.Vector([0.9, 0.4, 0.3])
-particle_color = ti.Vector([0.1, 0.4, 0.8])
-backgound_color = ti.Vector([0.9, 0.4, 0.6])
+sphere_color = ti.Vector([234/255, 244/255, 255/255])
+plane_color = ti.Vector([171/255, 189/255, 249/255])
+particle_color = ti.Vector([107/255, 115/255, 194/255])
+# backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
 SPHERE = 7
 PLANE = 8
