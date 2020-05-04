@@ -50,8 +50,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 2, 6],
-             cube_size=[0, 0, 0],
+mpm.add_cube(lower_corner=[1, 7, 6],
+             cube_size=[3, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -98,11 +98,18 @@ def sdf_Capsule(p, a, b, r):
   return length(p-c) - r
 
 @ti.func
-def sdf_Box(p, s):
+def sdf_Box(p, s, r):
+#     x = max(abs(p[0]) - s[0], 0.0)
+#     y = max(abs(p[1]) - s[1], 0.0)
+#     z = max(abs(p[2]) - s[2], 0.0)
+
     x = max(abs(p[0]) - s[0], 0.0)
     y = max(abs(p[1]) - s[1], 0.0)
     z = max(abs(p[2]) - s[2], 0.0)
-    return length(ti.Vector([x, y, z]))
+    q = ti.Vector([x,y,z])
+
+    return length(q) + min(max(q[0],max(q[1],q[2])),0.0) - r
+    # return length(ti.Vector([x, y, z]))
 
 @ti.func
 def rotate(a):
@@ -134,30 +141,46 @@ def rotate_axis_z(box_position, rot_mat):
     
     return box_position_rotated
 
+@ti.func
+def mix(x, y, a):
+    return x * (1-a) + y * a
+
+@ti.func
+def opSmoothUnion(d1, d2, k):
+    h = clamp( 0.5 + 0.5*(d2-d1)/k)
+    return mix(d2, d1, h) - k*h*(1.0-h)
 
 @ti.func
 def GetDist(p, t):
     intersection_object = 0
+
+    s0 = ti.Vector([-1, 0.8, 6.0, 0.7**0.5])
+    dist0 = p - xyz(s0)
+    sphereDist0 = length(dist0) - s0[3]
     
     s = ti.Vector([0, 1.0, 6.0, 1.25**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
+    
+    sphere0_1 = opSmoothUnion(sphereDist0, sphereDist, 0.1)
 
     s2 = ti.Vector([1.0, 0.8, 6.0, 0.9**0.5])
     dist2 = p - xyz(s2)
     sphereDist2 = length(dist2) - s2[3]
+
+    sphere0_1_2 = opSmoothUnion(sphere0_1, sphereDist2, 0.1)
    
     s3 = ti.Vector([2.0, 0.5, 6.0, 0.4**0.5])
     dist3 = p - xyz(s3)
     sphereDist3 = length(dist3) - s3[3]
 
+    sphere0_1_2_3 = opSmoothUnion(sphere0_1_2, sphereDist3, 0.1)
+
     s4 = ti.Vector([2.6, 0.2, 6.0, 0.2**0.5])
     dist4 = p - xyz(s4)
     sphereDist4 = length(dist4) - s4[3]
 
-    s5 = ti.Vector([-1, 0.8, 6.0, 0.7**0.5])
-    dist5 = p - xyz(s5)
-    sphereDist5 = length(dist5) - s5[3]
+    sphere0_1_2_3_4 = opSmoothUnion(sphere0_1_2_3, sphereDist4, 0.1)
     
     planeDist = p[1]
     
@@ -165,19 +188,21 @@ def GetDist(p, t):
     capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,5,6]), ti.Vector([1,4,6]), 0.2)
     
     rot_mat = rotate(t)
-    box_position = p - ti.Vector([1, 6, 6])
+    box_position = p - ti.Vector([1, 2, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
-    boxDist = sdf_Box(box_position, ti.Vector([1, 0.01, 1]))
+    boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([1, 6, 6])
+    box_position2 = p - ti.Vector([1, 4, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
-    boxDist2 = sdf_Box(box_position2, ti.Vector([0.01, 1, 0.25]))
+    boxDist2 = sdf_Box(box_position2, ti.Vector([0.01, 1, 1]), 0.1)
+
+    
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
     
-    # d = min(planeDist, sphereDist, capsuleDist, capsuleDist2, boxDist, boxDist2, sphereDist2, sphereDist3, sphereDist4, sphereDist5)
-    d = planeDist
+    d = min(planeDist, sphere0_1_2_3, capsuleDist, capsuleDist2, boxDist, boxDist2)
+    # d = planeDist
     if d == planeDist:
       intersection_object = PLANE
     else:
@@ -210,7 +235,7 @@ def world_to_grid(x):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(1):
+    for p in range(num_particles[None]):
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -295,7 +320,7 @@ def dda_particle(eye_pos, d, t, step):
                 if num_particles != 0:
                     # print(num)
                     # print(num_particles)
-                    world_pos = grid_to_world(ipos)
+                    # world_pos = grid_to_world(ipos)
                     # print(world_pos[0])
                     # print(world_pos[1])
                     # print(world_pos[2])
@@ -306,15 +331,15 @@ def dda_particle(eye_pos, d, t, step):
                     # v = mpm.v[p]
                     # x = mpm.x[p] + step * mpm.v[p]
                     x = mpm.x[p]     
-                    print(x[0])
-                    print(x[1])
-                    print(x[2])
+                    # print(x[0])
+                    # print(x[1])
+                    # print(x[2])
                     
-                    print(d[0])
-                    print(d[1])
-                    print(d[2])
+                    # print(d[0])
+                    # print(d[1])
+                    # print(d[2])
                     dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
-                    print(dist)
+                    # print(dist)
                     hit_pos = poss
                     if dist < closest_intersection and dist > 0:
                         hit_pos = eye_pos + dist * d
@@ -432,10 +457,10 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 1.0
+        starting_y = 7.0
         ending_y = 1.0
-        # motion_y = -t*4
-        motion_y = 0
+        motion_y = -t*4
+        # motion_y = 0
   
         ro = ti.Vector([1.0, starting_y , 1.0])
         lookat = ti.Vector([1.0, starting_y, 6.0])
