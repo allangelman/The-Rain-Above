@@ -29,9 +29,9 @@ plane_color = ti.Vector([171/255, 189/255, 249/255])
 particle_color = ti.Vector([107/255, 115/255, 194/255])
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
-SPHERE = 7
-PLANE = 8
-PARTICLES = 5
+SPHERE = 1
+PLANE = 2
+PARTICLES = 3
 
 pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
@@ -478,7 +478,7 @@ def GetLight(p, t, hit, nor, step, rd):
     diff = (diff + 1.0)/2.0
 
 
-    sceneCol = (getColor(hit)*(diff + 0.15) + ti.Vector([0.8, 0.8, 0.2])*spec*1.0) * atten
+    sceneCol = (getColor(hit)*(diff + 0.15) + ti.Vector([0.8, 0.8, 0.2])*spec*0.5) * atten
     
     return sceneCol, n
 
@@ -542,7 +542,7 @@ def paint(t: ti.f32):
             p += rd2*d2
             
             light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
-            light += light2*0.35
+            light += light2*0.20
             
         pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
 
