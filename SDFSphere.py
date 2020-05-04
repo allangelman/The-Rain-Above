@@ -50,7 +50,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 7, 6],
+mpm.add_cube(lower_corner=[1, 8, 6],
              cube_size=[3, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -154,29 +154,29 @@ def opSmoothUnion(d1, d2, k):
 def GetDist(p, t):
     intersection_object = 0
 
-    s0 = ti.Vector([-1, 0.8, 6.0, 0.7**0.5])
+    s0 = ti.Vector([-1, 1.4, 6.0, 0.7**0.5])
     dist0 = p - xyz(s0)
     sphereDist0 = length(dist0) - s0[3]
     
-    s = ti.Vector([0, 1.0, 6.0, 1.25**0.5])
+    s = ti.Vector([0, 2.0, 6.0, 1.25**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     
     sphere0_1 = opSmoothUnion(sphereDist0, sphereDist, 0.1)
 
-    s2 = ti.Vector([1.0, 0.8, 6.0, 0.9**0.5])
+    s2 = ti.Vector([1.0, 1.8, 6.0, 0.9**0.5])
     dist2 = p - xyz(s2)
     sphereDist2 = length(dist2) - s2[3]
 
     sphere0_1_2 = opSmoothUnion(sphere0_1, sphereDist2, 0.1)
    
-    s3 = ti.Vector([2.0, 0.5, 6.0, 0.4**0.5])
+    s3 = ti.Vector([2.0, 1.5, 6.0, 0.4**0.5])
     dist3 = p - xyz(s3)
     sphereDist3 = length(dist3) - s3[3]
 
     sphere0_1_2_3 = opSmoothUnion(sphere0_1_2, sphereDist3, 0.1)
 
-    s4 = ti.Vector([2.6, 0.2, 6.0, 0.2**0.5])
+    s4 = ti.Vector([2.6, 1.2, 6.0, 0.2**0.5])
     dist4 = p - xyz(s4)
     sphereDist4 = length(dist4) - s4[3]
 
@@ -188,20 +188,23 @@ def GetDist(p, t):
     capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,5,6]), ti.Vector([1,4,6]), 0.2)
     
     rot_mat = rotate(t)
-    box_position = p - ti.Vector([1, 2, 6])
+    box_position = p - ti.Vector([2, 6, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([1, 4, 6])
+    box_position2 = p - ti.Vector([2, 6, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
-    boxDist2 = sdf_Box(box_position2, ti.Vector([0.01, 1, 1]), 0.1)
+    boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
 
+    box_position3 = p - ti.Vector([1, 3.1, 6.0])
+    boxDist3 = sdf_Box(box_position3, ti.Vector([4, 2, 0.1]), 0.1)
     
+    cloud = max(boxDist3, sphere0_1_2_3_4)
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
     
-    d = min(planeDist, sphere0_1_2_3, capsuleDist, capsuleDist2, boxDist, boxDist2)
+    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud)
     # d = planeDist
     if d == planeDist:
       intersection_object = PLANE
@@ -457,7 +460,7 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 7.0
+        starting_y = 9.0
         ending_y = 1.0
         motion_y = -t*4
         # motion_y = 0
