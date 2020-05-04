@@ -22,16 +22,26 @@ MAX_STEPS_reflection = 50
 MAX_DIST = 100.0
 SURF_DIST = 0.01
 SURF_DIST_reflection = 0.02
+REFRACT_INDEX = 1.6
+DELTA = 0.001
+refractionRatio = 1.0 / REFRACT_INDEX
+distanceFactor = 1.0
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
-sphere_color = ti.Vector([234/255, 244/255, 255/255])
-plane_color = ti.Vector([171/255, 189/255, 249/255])
+cloud_color = ti.Vector([234/255, 244/255, 255/255])
+plane_color = ti.Vector([210/255, 230/255, 249/255])
 particle_color = ti.Vector([107/255, 115/255, 194/255])
+capsule_color = ti.Vector([234/255, 244/255, 100/255])
+capsule_color2 = ti.Vector([100/255, 189/255, 220/255])
+wheel_color = ti.Vector([50/255, 250/255, 170/255])
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
-SPHERE = 1
+CLOUD  = 1
 PLANE = 2
 PARTICLES = 3
+CAPSULE = 4
+CAPSULE2 = 5
+WHEEL = 6
 
 pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
@@ -210,8 +220,14 @@ def GetDist(p, t):
     # d = planeDist
     if d == planeDist:
       intersection_object = PLANE
+    elif d == cloud:
+      intersection_object = CLOUD
+    elif d == capsuleDist:
+      intersection_object = CAPSULE
+    elif d == capsuleDist2:
+      intersection_object = CAPSULE2
     else:
-      intersection_object = SPHERE
+      intersection_object = WHEEL
     return d, intersection_object
 
 
@@ -446,14 +462,30 @@ def reflect(I, N):
     return I - 2.0 * ti.dot(N, I) * N
 
 @ti.func
+def refract(I, N, eta):
+    R = ti.Vector([0.0,0.0,0.0])
+    k = 1.0 - eta * eta * (1.0 - ti.dot(N, I) * ti.dot(N, I))
+    if (k < 0.0):
+        R = ti.Vector([0.0,0.0,0.0])
+    else:
+        R = eta * I - (eta * ti.dot(N, I) + ti.sqrt(k)) * N
+    return R
+
+@ti.func
 def getColor(int_ob):
     fin = ti.Vector([0.0,0.0,0.0])
     if int_ob == PLANE: #if it hit the plane
         fin = plane_color
-    elif int_ob == SPHERE: #if it hit the sphere
-        fin = sphere_color
+    elif int_ob == CLOUD: #if it hit the cloud
+        fin = cloud_color
     elif int_ob == PARTICLES: #if it hit the particle
         fin = particle_color
+    elif int_ob == CAPSULE: #if it hit the capsule 1
+        fin = capsule_color
+    elif int_ob == CAPSULE2: #if it hit the capsule 2
+        fin = capsule_color2
+    else: #if it hit the capsule 2
+        fin = wheel_color
     return fin
 
 @ti.func
@@ -534,15 +566,31 @@ def paint(t: ti.f32):
         d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
         p = ro + rd * d
         light, normal = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd)
-        if (intersection_object != PARTICLES and intersection_object != PLANE):
-            rd2 = reflect(rd, normal)
-
+        
+        rd2 = reflect(rd, normal)
+        if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
             d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
             
             p += rd2*d2
             
             light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
             light += light2*0.20
+        
+        rd3 = refract(rd, normal, refractionRatio)
+        if (intersection_object == CLOUD):
+            d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
+            
+            p += rd3*d3
+            
+            light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
+            light += light3*0.20
+            # if (ti.dot(refraction, refraction) < DELTA):
+            #     rd = rd2
+            #     p += rd * DELTA * 2.0
+            # else:
+            #     rd = refraction
+            #     distanceFactor = -distanceFactor
+            #     refractionRatio = 1.0 / refractionRatio
             
         pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
 
