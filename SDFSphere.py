@@ -417,9 +417,23 @@ def clamp(p):
         p = 1
     return p
 
+@ti.func
+def reflect(I, N):
+    return I - 2.0 * ti.dot(N, I) * N
 
 @ti.func
-def GetLight(p, t, hit, nor, step):
+def getColor(int_ob):
+    fin = ti.Vector([0.0,0.0,0.0])
+    if int_ob == PLANE: #if it hit the plane
+        fin = plane_color
+    elif int_ob == SPHERE: #if it hit the sphere
+        fin = sphere_color
+    elif int_ob == PARTICLES: #if it hit the particle
+        fin = particle_color
+    return fin
+
+@ti.func
+def GetLight(p, t, hit, nor, step, rd, int_ob):
     lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
 
     l = normalize(lightPos - p)
@@ -428,13 +442,21 @@ def GetLight(p, t, hit, nor, step):
         n = nor
     else: #sphere or plane
         n = GetNormal(p, t)
+    # attenuating the light
+    atten = 1.0 / (1.0 + l*0.2 + l*l*0.1)
+    spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
+    diff = clamp(ti.dot(n, l))    
+   
 
-    diff = clamp(ti.dot(n, l))
     d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
     if (d < length(lightPos - p)):
         diff = diff * 0.1
     diff = (diff + 1.0)/2.0
-    return diff
+
+
+    sceneCol = (getColor(int_ob)*(diff + 0.15) + ti.Vector([1.0, 0.6, 0.2])*spec*2.0) * atten
+    
+    return diff*getColor(int_ob)
 
 
 @ti.kernel
@@ -487,17 +509,9 @@ def paint(t: ti.f32):
 
         d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
         p = ro + rd * d
-        light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0)
+        light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd, intersection_object)
 
-        if intersection_object == PLANE: #if it hit the plane
-            fin = light * plane_color
-        elif intersection_object == SPHERE: #if it hit the sphere
-            fin = light * sphere_color
-
-        elif intersection_object == PARTICLES: #if it hit the particle
-            fin = light * particle_color
-
-        pixels[i, j] = ti.Vector([fin[0], fin[1], fin[2], 1.0]) #color
+        pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
 
 ##############  MOTION BLUR ATTEMPT 1 ################
     # original_t = t
