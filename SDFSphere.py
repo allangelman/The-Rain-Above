@@ -18,8 +18,10 @@ support = 1
 shutter_time = 0.5e-3
 sphere_radius = 0.03
 MAX_STEPS = 100
+MAX_STEPS_reflection = 50
 MAX_DIST = 100.0
 SURF_DIST = 0.01
+SURF_DIST_reflection = 0.02
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
 sphere_color = ti.Vector([234/255, 244/255, 255/255])
@@ -382,10 +384,32 @@ def RayMarch(ro, rd, t):
         i = i + 1
     return dO, intersection_object
 
+@ti.func
+def RayMarch_reflection(ro, rd, t):
+    intersection_object = 0
+    dO = 0.0
+    i = 0
+    while i < MAX_STEPS_reflection:
+        p = ro + rd * dO
+        dS, intersection_object = GetDist(p, t)
+        dO += dS
+        if dO > MAX_DIST or dS < SURF_DIST_reflection:
+            break
+        i = i + 1
+    return dO, intersection_object
+
 
 @ti.func
 def rayCast(eye_pos, d, t, step):
     sdf_dis, intersection_object = RayMarch(eye_pos, d, t)
+    particle_dis, normal = dda_particle(eye_pos, d, t, step)
+    if min(sdf_dis, particle_dis) == particle_dis:
+        intersection_object = PARTICLES
+    return min(sdf_dis, particle_dis), normal, intersection_object, sdf_dis
+
+@ti.func
+def rayCast_reflection(eye_pos, d, t, step):
+    sdf_dis, intersection_object = RayMarch_reflection(eye_pos, d, t)
     particle_dis, normal = dda_particle(eye_pos, d, t, step)
     if min(sdf_dis, particle_dis) == particle_dis:
         intersection_object = PARTICLES
@@ -433,8 +457,9 @@ def getColor(int_ob):
     return fin
 
 @ti.func
-def GetLight(p, t, hit, nor, step, rd, int_ob):
-    lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
+def GetLight(p, t, hit, nor, step, rd):
+    # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
+    lightPos = ti.Vector([0.0, 10.0, 3.0])
 
     l = normalize(lightPos - p)
     n = GetNormal(p, t)
@@ -446,17 +471,16 @@ def GetLight(p, t, hit, nor, step, rd, int_ob):
     atten = 1.0 / (1.0 + l*0.2 + l*l*0.1)
     spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
     diff = clamp(ti.dot(n, l))    
-   
 
-    d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
-    if (d < length(lightPos - p)):
-        diff = diff * 0.1
+    # d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
+    # if (d < length(lightPos - p)):
+    #     diff = diff * 0.1
     diff = (diff + 1.0)/2.0
 
 
-    sceneCol = (getColor(int_ob)*(diff + 0.15) + ti.Vector([1.0, 0.6, 0.2])*spec*2.0) * atten
+    sceneCol = (getColor(hit)*(diff + 0.15) + ti.Vector([0.8, 0.8, 0.2])*spec*1.0) * atten
     
-    return diff*getColor(int_ob)
+    return sceneCol, n
 
 
 @ti.kernel
@@ -509,8 +533,17 @@ def paint(t: ti.f32):
 
         d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
         p = ro + rd * d
-        light = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd, intersection_object)
+        light, normal = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd)
+        if (intersection_object != PARTICLES and intersection_object != PLANE):
+            rd2 = reflect(rd, normal)
 
+            d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
+            
+            p += rd2*d2
+            
+            light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
+            light += light2*0.35
+            
         pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
 
 ##############  MOTION BLUR ATTEMPT 1 ################
