@@ -167,7 +167,7 @@ class MPMSolver:
                 self.grid_v[I] += dt * self.gravity[None]
                 for d in ti.static(range(self.dim)):
                     #if each component of position is less than 3 and the velocity is less than 0
-                    if I[d] < 3 and self.grid_v[I][d] < 0:
+                    if I[d] < 2 and self.grid_v[I][d] < 0:
                         self.grid_v[I][d] = 0  # Boundary conditions
                     #if each component of position is greater than the outerbound minus 3 and the velocity is greater than 0
                     if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0:
@@ -179,12 +179,12 @@ class MPMSolver:
                     # if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 1.0**0.5 < 0):
                     #     self.grid_v[I] = [0, 0, 0]
                     
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([2,3,6]), ti.Vector([4,4,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([2,6,6]), ti.Vector([4,7,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([-1,5,6]), ti.Vector([1,4,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([-1,8,6]), ti.Vector([1,7,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     
-                    box_position = ti.Vector([2, 6, 6])
+                    box_position = ti.Vector([2, 9, 6])
                     s = ti.sin(t)
                     c = ti.cos(t)
                     rot_mat = ti.Matrix([[c, -s], [s, c]])

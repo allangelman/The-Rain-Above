@@ -62,8 +62,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 8, 6],
-             cube_size=[3, 1, 0.5],
+mpm.add_cube(lower_corner=[1, 9.0, 6],
+             cube_size=[8, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -163,55 +163,61 @@ def opSmoothUnion(d1, d2, k):
     return mix(d2, d1, h) - k*h*(1.0-h)
 
 @ti.func
-def GetDist(p, t):
-    intersection_object = 0
-
-    s0 = ti.Vector([-1, 1.4, 6.0, 0.7**0.5])
+def clouds(p, x, y, z):
+    s0 = ti.Vector([-1+x, 1.4+y, 6.0+z, 0.7**0.5])
     dist0 = p - xyz(s0)
     sphereDist0 = length(dist0) - s0[3]
     
-    s = ti.Vector([0, 2.0, 6.0, 1.25**0.5])
+    s = ti.Vector([0+x, 2.0+y, 6.0+z, 1.25**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     
     sphere0_1 = opSmoothUnion(sphereDist0, sphereDist, 0.1)
 
-    s2 = ti.Vector([1.0, 1.8, 6.0, 0.9**0.5])
+    s2 = ti.Vector([1.0+x, 1.8+y, 6.0+z, 0.9**0.5])
     dist2 = p - xyz(s2)
     sphereDist2 = length(dist2) - s2[3]
 
     sphere0_1_2 = opSmoothUnion(sphere0_1, sphereDist2, 0.1)
    
-    s3 = ti.Vector([2.0, 1.5, 6.0, 0.4**0.5])
+    s3 = ti.Vector([2.0+x, 1.5+y, 6.0+z, 0.4**0.5])
     dist3 = p - xyz(s3)
     sphereDist3 = length(dist3) - s3[3]
 
     sphere0_1_2_3 = opSmoothUnion(sphere0_1_2, sphereDist3, 0.1)
 
-    s4 = ti.Vector([2.6, 1.2, 6.0, 0.2**0.5])
+    s4 = ti.Vector([2.6+x, 1.2+y, 6.0+z, 0.2**0.5])
     dist4 = p - xyz(s4)
     sphereDist4 = length(dist4) - s4[3]
 
     sphere0_1_2_3_4 = opSmoothUnion(sphere0_1_2_3, sphereDist4, 0.1)
     
+    box_position3 = p - ti.Vector([1+x, 3.1+y, 6.0+z])
+    boxDist3 = sdf_Box(box_position3, ti.Vector([4, 2, 0.1]), 0.1)
+
+    cloud = max(boxDist3, sphere0_1_2_3_4)
+    
+    return cloud
+    
+@ti.func
+def GetDist(p, t):
+    intersection_object = 0
+
+    cloud = clouds(p, 0, 3, 0)
+    
     planeDist = p[1]
     
-    capsuleDist = sdf_Capsule(p, ti.Vector([2,3,6]), ti.Vector([4,4,6]), 0.2)
-    capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,5,6]), ti.Vector([1,4,6]), 0.2)
+    capsuleDist = sdf_Capsule(p, ti.Vector([2,6,6]), ti.Vector([4,7,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,8,6]), ti.Vector([1,7,6]), 0.2)
     
     rot_mat = rotate(t)
-    box_position = p - ti.Vector([2, 6, 6])
+    box_position = p - ti.Vector([2, 9, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([2, 6, 6])
+    box_position2 = p - ti.Vector([2, 9, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
     boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
-
-    box_position3 = p - ti.Vector([1, 3.1, 6.0])
-    boxDist3 = sdf_Box(box_position3, ti.Vector([4, 2, 0.1]), 0.1)
-    
-    cloud = max(boxDist3, sphere0_1_2_3_4)
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
@@ -538,20 +544,22 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 9.0
-        ending_y = 1.0
+        starting_y = 11.0
+        ending_y = 3.0
         motion_y = -t*4
+        lookat_starting_y = starting_y + 2.0
+        lookat_ending_y = ending_y + 2.0
         # motion_y = 0
   
         ro = ti.Vector([1.0, starting_y , 1.0])
-        lookat = ti.Vector([1.0, starting_y, 6.0])
+        lookat = ti.Vector([1.0, lookat_starting_y, 6.0])
 
         if starting_y + motion_y > ending_y:
           ro = ti.Vector([1.0, starting_y + motion_y, 1.0])
-          lookat = ti.Vector([1.0, starting_y + motion_y, 6.0]) 
+          lookat = ti.Vector([1.0, lookat_starting_y + motion_y, 6.0]) 
         else:
           ro = ti.Vector([1.0, ending_y, 1.0])
-          lookat = ti.Vector([1.0, ending_y, 6.0])
+          lookat = ti.Vector([1.0, lookat_ending_y, 6.0])
 
         zoom = 1.0
 
@@ -567,30 +575,24 @@ def paint(t: ti.f32):
         p = ro + rd * d
         light, normal = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd)
         
-        rd2 = reflect(rd, normal)
-        if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
-            d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
+        # rd2 = reflect(rd, normal)
+        # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
+        #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
             
-            p += rd2*d2
+        #     p += rd2*d2
             
-            light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
-            light += light2*0.20
+        #     light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
+        #     light += light2*0.20
         
-        rd3 = refract(rd, normal, refractionRatio)
-        if (intersection_object == CLOUD):
-            d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
+        # rd3 = refract(rd, normal, refractionRatio)
+        # if (intersection_object == CLOUD):
+        #     d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
             
-            p += rd3*d3
+        #     p += rd3*d3
             
-            light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
-            light += light3*0.20
-            # if (ti.dot(refraction, refraction) < DELTA):
-            #     rd = rd2
-            #     p += rd * DELTA * 2.0
-            # else:
-            #     rd = refraction
-            #     distanceFactor = -distanceFactor
-            #     refractionRatio = 1.0 / refractionRatio
+        #     light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
+        #     light += light3*0.20
+
             
         pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
 
