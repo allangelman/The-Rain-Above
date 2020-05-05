@@ -272,7 +272,7 @@ def world_to_grid(x):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(1):
+    for p in range(num_particles[None]):
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -589,23 +589,23 @@ def paint(t: ti.f32):
         p = ro + rd * d
         light, normal = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd)
         
-        rd2 = reflect(rd, normal)
-        if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
-            d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
+        # rd2 = reflect(rd, normal)
+        # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
+        #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
             
-            p += rd2*d2
+        #     p += rd2*d2
             
-            light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
-            light += light2*0.20
+        #     light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
+        #     light += light2*0.20
         
-        rd3 = refract(rd, normal, refractionRatio)
-        if (intersection_object == CLOUD or intersection_object == CLOUD2 or intersection_object == CLOUD3):
-            d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
+        # rd3 = refract(rd, normal, refractionRatio)
+        # if (intersection_object == CLOUD or intersection_object == CLOUD2 or intersection_object == CLOUD3):
+        #     d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
             
-            p += rd3*d3
+        #     p += rd3*d3
             
-            light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
-            light = light*0.8 + light3*0.20
+        #     light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
+        #     light = light*0.8 + light3*0.20
 
             
         pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
