@@ -3,7 +3,12 @@ import math
 
 eps = 1e-4
 inf = 1e10
-
+num1 = 1000001
+num2 = 2000002
+num3 = 3000003
+num4 = 4000004
+num5 = 5000005
+num6 = 6000006
 
 @ti.func
 def out_dir(n):
@@ -71,6 +76,7 @@ def intersect_sphere(pos, d, center, radius):
         dist = ret1
         if ti.static(refine):
             if dist < inf:
+                print(num1)
                 # refinement
                 old_dist = dist
                 new_pos = pos + d * dist
@@ -80,11 +86,14 @@ def intersect_sphere(pos, d, center, radius):
                 C = T.dot(T) - radius * radius
                 delta = B * B - 4 * A * C
                 if delta > 0:
+                    print(num3)
                     sdelta = ti.sqrt(delta)
                     ratio = 0.5 / A
                     ret1 = ratio * (-B - sdelta) + old_dist
                     if ret1 > 0:
                         dist = ret1
+                        print(num4)
+                        print(dist)
                         hit_pos = new_pos + ratio * (-B - sdelta) * d
                     else:
                         pass
@@ -93,8 +102,12 @@ def intersect_sphere(pos, d, center, radius):
                         #  dist = ret2
                         #  hit_pos = new_pos + ratio * (-B + sdelta) * d
                 else:
+                    print(num2)
                     dist = inf
-
+        print(num5)
+        print(dist)
+    # print(num6)
+    # print(dist)
     return dist, hit_pos
 
 

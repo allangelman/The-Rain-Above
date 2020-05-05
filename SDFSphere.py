@@ -343,12 +343,12 @@ def dda_particle(eye_pos, d, t, step):
         ipos = ti.Matrix.floor(o).cast(int)
         dis = (ipos - o + 0.5 + rsign * 0.5) * rinv
         running = 1
+        num = 999999999
+        num2 = 2000000002
         # DDA for voxels with at least one particle
         while running:
             inside = inside_particle_grid(ipos)
             if inside:
-                # num = 1000000000
-                # num2 = 2000000002
                 # print(ipos[0])
                 # print(ipos[1])
                 # print(ipos[2])
@@ -376,6 +376,7 @@ def dda_particle(eye_pos, d, t, step):
                     # print(d[1])
                     # print(d[2])
                     dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
+                    # print(num)
                     # print(dist)
                     hit_pos = poss
                     if dist < closest_intersection and dist > 0:
@@ -386,8 +387,10 @@ def dda_particle(eye_pos, d, t, step):
                 running = 0
                 normal = [0, 0, 0]
             if closest_intersection < inf:
+                # print(num)
                 running = 0
             else:
+                # print(num2)
                 # hits nothing. Continue ray marching
                 mm = ti.Vector([0, 0, 0])
                 if dis[0] <= dis[1] and dis[0] <= dis[2]:
@@ -585,9 +588,9 @@ def paint(t: ti.f32):
         intersection = center + uv[0]*right + uv[1]*up
         rd = ti.normalized(intersection - ro)
 
-        d, no, intersection_object = rayCast(ro, rd, t+(0.03*0), 0.03*0)
+        d, no, intersection_object = rayCast(ro, rd, t, 0)
         p = ro + rd * d
-        light, normal = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd)
+        light, normal = GetLight(p, t, intersection_object, no, 0, rd)
         
         # rd2 = reflect(rd, normal)
         # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
@@ -678,13 +681,13 @@ def main():
             # min_val = ( math.floor( np_x[:, i].min() ) / 10 * particle_grid_res - 3 ) / (particle_grid_res / 10)
             min_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].min())) - 3 ) 
             # print((math.floor(np_x[:, i].min())))
-            # print(min_val)
+            print(min_val)
 
 
             # max_val = (math.floor(np_x[:, i].max()) / 10 * particle_grid_res + 3) / (particle_grid_res / 10)
             max_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].max())) + 3 ) 
             # print((math.floor(np_x[:, i].max())))
-            # print(max_val)  
+            print(max_val)  
 
             # if min_val < 0:
             #   min_val = 0
@@ -698,9 +701,9 @@ def main():
         #clear particle grid and pid voxel has particle
         initialize_particle_x(np_x, np_v)
         initialize_particle_grid()
-        # print(mpm.x[0][0])
-        # print(mpm.x[0][1])
-        # print(mpm.x[0][2])
+        print(mpm.x[0][0])
+        print(mpm.x[0][1])
+        print(mpm.x[0][2])
 
         #smaller timestep or implicit time integrator for water/snow error
         paint(frame * frameTime)
