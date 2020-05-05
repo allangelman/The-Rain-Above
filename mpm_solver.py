@@ -167,7 +167,7 @@ class MPMSolver:
                 self.grid_v[I] += dt * self.gravity[None]
                 for d in ti.static(range(self.dim)):
                     #if each component of position is less than 3 and the velocity is less than 0
-                    if I[d] < 3 and self.grid_v[I][d] < 0:
+                    if I[d] < 2 and self.grid_v[I][d] < 0:
                         self.grid_v[I][d] = 0  # Boundary conditions
                     #if each component of position is greater than the outerbound minus 3 and the velocity is greater than 0
                     if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0:
@@ -176,46 +176,46 @@ class MPMSolver:
                     grid_pos = self.dx * I
                     # if ((grid_pos - ti.Vector([0, 1 + ti.cos(t), 6 + ti.cos(t)])).norm() - 1.0**0.5 < 0):
                     #   self.grid_v[I] = [0,-ti.sin(t),-ti.sin(t)]
-                    if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 1.0**0.5 < 0):
-                        self.grid_v[I] = [0, 0, 0]
-                    
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([2,3,6]), ti.Vector([4,4,6])))).norm() - 0.2 < 0):
-                        self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([-1,5,6]), ti.Vector([1,4,6])))).norm() - 0.2 < 0):
-                        self.grid_v[I] = [0, 0, 0]
-                    
-                    # box_position = ti.Vector([1, 4, 6])
-                    # box_position_vect = (grid_pos - box_position)
-                    # s = ti.Vector([1, 0.25, 0.25])
-                    # x = max(abs(box_position_vect[0]) - s[0], 0.0)
-                    # y = max(abs(box_position_vect[1]) - s[1], 0.0)
-                    # z = max(abs(box_position_vect[2]) - s[2], 0.0)
-                    # box = ti.sqrt(x*x + y*y + z*z)
-                    # # distToCenter = (grid_pos - box_position).norm()
-                    
-                    # if ((grid_pos - box_position).norm() - box < 0):
+                    # if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 1.0**0.5 < 0):
                     #     self.grid_v[I] = [0, 0, 0]
                     
-        
-                    # if (grid_pos[0] < (box_position[0] + s[0]/2.0) and grid_pos[0] > (box_position[0] - s[0]/2.0)
-                    #    and grid_pos[1] < (box_position[1] + s[1]/2.0) and grid_pos[1] > (box_position[1] - s[1]/2.0)
-                    #    and grid_pos[2] < (box_position[2] + s[2]/2.0) and grid_pos[2] > (box_position[2] - s[2]/2.0)):
-                    #     self.grid_v[I] = [0, 0, 0]
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,7,6]), ti.Vector([9,8,6])))).norm() - 0.2 < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,8,6]), ti.Vector([5,7,6])))).norm() - 0.2 < 0):
+                        self.grid_v[I] = [0, 0, 0]
                     
-                    # if (grid_posdistToCenter - box< 0):
-                    #     self.grid_v[I][0] = 0
-                    # if (box[1] < 0):
-                    #     self.grid_v[I][1] = 0
-                    # if (box[2] < 0):
-                    #     self.grid_v[I][2] = 0
+                    box_position = ti.Vector([6, 9, 6])
+                    s = ti.sin(t)
+                    c = ti.cos(t)
+                    rot_mat = ti.Matrix([[c, -s], [s, c]])
+
+                    box_position_vect = (grid_pos - box_position)
+                    rotated_x = rot_mat[0,0] * box_position_vect[0] + rot_mat[1,0] * box_position_vect[1] 
+                    rotated_y = rot_mat[0,1] * box_position_vect[0] + rot_mat[1,1] * box_position_vect[1] 
+                    box_position_rotated = ti.Vector([rotated_x, rotated_y, box_position_vect[2]])
                     
-                    # box_position2 = grid_pos - ti.Vector([1, 6, 6])
-                    # box_position_vec2 = ti.Vector([box_position2[0], box_position2[1], box_position2[2]])
-                    # if ((box(box_position_vec2, ti.Vector([0.01, 1, 0.25]))).norm() < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
-                    
-                    # if (grid_pos - ti.Vector([3,3,3]) < 0):
-                    #   self.grid_v[I] = [0,0,0]
+                    size = ti.Vector([1, 0.1, 1])
+
+                    x = max(abs(box_position_rotated[0]) - size[0], 0.0)
+                    y = max(abs(box_position_rotated[1]) - size[1], 0.0)
+                    z = max(abs(box_position_rotated[2]) - size[2], 0.0)
+                    q = ti.Vector([x,y,z])
+                    qLength = ti.sqrt((q[0] * q[0]) + (q[1] * q[1]) + (q[2] * q[2]))
+
+                    if ((qLength + min(max(q[0],max(q[1],q[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
+
+                    size2 = ti.Vector([0.1, 1, 1])
+
+                    x = max(abs(box_position_rotated[0]) - size2[0], 0.0)
+                    y = max(abs(box_position_rotated[1]) - size2[1], 0.0)
+                    z = max(abs(box_position_rotated[2]) - size2[2], 0.0)
+                    q2 = ti.Vector([x,y,z])
+                    qLength2 = ti.sqrt((q2[0] * q2[0]) + (q2[1] * q2[1]) + (q2[2] * q2[2]))
+
+                    if ((qLength2 + min(max(q2[0],max(q2[1],q2[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                
 
     @ti.classkernel
     def g2p(self, dt: ti.f32):
@@ -270,6 +270,7 @@ class MPMSolver:
         for i in range(self.dim):
             vol = vol * cube_size[i]
         num_new_particles = int(sample_density * vol / self.dx**self.dim + 1)
+        # num_new_particles = 1
         assert self.n_particles + num_new_particles <= self.max_num_particles
 
         for i in range(self.dim):
