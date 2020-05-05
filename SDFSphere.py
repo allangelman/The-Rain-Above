@@ -66,8 +66,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 9.0, 6],
-             cube_size=[3, 1, 0.5],
+mpm.add_cube(lower_corner=[3, 9.0, 6],
+             cube_size=[6, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -207,13 +207,13 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 def GetDist(p, t):
     intersection_object = 0
 
-    cloud = clouds(p, 5, 2.7, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
-    cloud2 = clouds(p, 9, 2.5, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
-    cloud3 = clouds(p, 1, 2.2, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = clouds(p, 5, 2.7 + ti.sin(t*4)*0.25, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud2 = clouds(p, 9, 2.5 - ti.sin(t*4)*0.25, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud3 = clouds(p, 1, 2.2 + ti.cos(t*3)*0.25, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
     
     planeDist = p[1]
     
-    capsuleDist = sdf_Capsule(p, ti.Vector([7,6,6]), ti.Vector([9,7,6]), 0.2)
+    capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
     capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
     
     rot_mat = rotate(t)
@@ -589,23 +589,23 @@ def paint(t: ti.f32):
         p = ro + rd * d
         light, normal = GetLight(p, t+(0.03*0), intersection_object, no, 0.03*0, rd)
         
-        # rd2 = reflect(rd, normal)
-        # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
-        #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
+        rd2 = reflect(rd, normal)
+        if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
+            d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
             
-        #     p += rd2*d2
+            p += rd2*d2
             
-        #     light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
-        #     light += light2*0.20
+            light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
+            light += light2*0.20
         
-        # rd3 = refract(rd, normal, refractionRatio)
-        # if (intersection_object == CLOUD):
-        #     d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
+        rd3 = refract(rd, normal, refractionRatio)
+        if (intersection_object == CLOUD or intersection_object == CLOUD2 or intersection_object == CLOUD3):
+            d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
             
-        #     p += rd3*d3
+            p += rd3*d3
             
-        #     light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
-        #     light += light3*0.20
+            light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
+            light = light*0.8 + light3*0.20
 
             
         pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color

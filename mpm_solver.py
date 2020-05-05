@@ -179,7 +179,7 @@ class MPMSolver:
                     # if ((grid_pos - ti.Vector([0, 1, 6])).norm() - 1.0**0.5 < 0):
                     #     self.grid_v[I] = [0, 0, 0]
                     
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,6,6]), ti.Vector([9,7,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,7,6]), ti.Vector([9,8,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     if ((grid_pos - (capsule(grid_pos, ti.Vector([3,8,6]), ti.Vector([5,7,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
