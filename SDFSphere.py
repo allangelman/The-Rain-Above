@@ -66,8 +66,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3, 9.0, 6],
-             cube_size=[6, 1, 0.5],
+mpm.add_cube(lower_corner=[3, 2.0, 6],
+             cube_size=[0, 0, 0],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -228,8 +228,8 @@ def GetDist(p, t):
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
     
-    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud, cloud2, cloud3)
-    # d = planeDist
+    # d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud, cloud2, cloud3)
+    d = planeDist
     if d == planeDist:
       intersection_object = PLANE
     elif d == cloud:
@@ -272,7 +272,7 @@ def world_to_grid(x):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(num_particles[None]):
+    for p in range(1):
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -524,9 +524,9 @@ def GetLight(p, t, hit, nor, step, rd):
     spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
     diff = clamp(ti.dot(n, l))    
 
-    # d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
-    # if (d < length(lightPos - p)):
-    #     diff = diff * 0.1
+    d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
+    if (d < length(lightPos - p)):
+        diff = diff * 0.1
     diff = (diff + 1.0)/2.0
 
 
@@ -558,11 +558,11 @@ def paint(t: ti.f32):
     for i,j in pixels: 
         uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
         
-        starting_y = 11.0
-        ending_y = 3.0
-        motion_y = -t*4
-        lookat_starting_y = starting_y + 1.0
-        lookat_ending_y = ending_y + 1.0
+        starting_y = 1
+        ending_y = 1
+        motion_y = 0
+        lookat_starting_y = 1
+        lookat_ending_y = 1
         # motion_y = 0
   
         ro = ti.Vector([5.0, starting_y , 1.0])

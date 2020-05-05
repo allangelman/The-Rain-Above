@@ -269,8 +269,8 @@ class MPMSolver:
         vol = 1
         for i in range(self.dim):
             vol = vol * cube_size[i]
-        num_new_particles = int(sample_density * vol / self.dx**self.dim + 1)
-        # num_new_particles = 1
+        # num_new_particles = int(sample_density * vol / self.dx**self.dim + 1)
+        num_new_particles = 1
         assert self.n_particles + num_new_particles <= self.max_num_particles
 
         for i in range(self.dim):
