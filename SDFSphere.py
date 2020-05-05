@@ -29,6 +29,8 @@ distanceFactor = 1.0
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
 cloud_color = ti.Vector([234/255, 244/255, 255/255])
+cloud_color2 = ti.Vector([210/255, 250/255, 245/255])
+cloud_color3 = ti.Vector([225/255, 255/255, 235/255])
 plane_color = ti.Vector([210/255, 230/255, 249/255])
 particle_color = ti.Vector([107/255, 115/255, 194/255])
 capsule_color = ti.Vector([234/255, 244/255, 100/255])
@@ -37,11 +39,13 @@ wheel_color = ti.Vector([50/255, 250/255, 170/255])
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
 CLOUD  = 1
-PLANE = 2
-PARTICLES = 3
-CAPSULE = 4
-CAPSULE2 = 5
-WHEEL = 6
+CLOUD2  = 2
+CLOUD3  = 3
+PLANE = 4
+PARTICLES = 5
+CAPSULE = 6
+CAPSULE2 = 7
+WHEEL = 8
 
 pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
@@ -63,7 +67,7 @@ def buffers():
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
 mpm.add_cube(lower_corner=[1, 9.0, 6],
-             cube_size=[8, 1, 0.5],
+             cube_size=[3, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -163,30 +167,30 @@ def opSmoothUnion(d1, d2, k):
     return mix(d2, d1, h) - k*h*(1.0-h)
 
 @ti.func
-def clouds(p, x, y, z):
-    s0 = ti.Vector([-1+x, 1.4+y, 6.0+z, 0.7**0.5])
+def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
+    s0 = ti.Vector([-1+x, 1.4+y, 6.0+z, bump0**0.5])
     dist0 = p - xyz(s0)
     sphereDist0 = length(dist0) - s0[3]
     
-    s = ti.Vector([0+x, 2.0+y, 6.0+z, 1.25**0.5])
+    s = ti.Vector([0+x, 2.0+y, 6.0+z, bump1**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     
     sphere0_1 = opSmoothUnion(sphereDist0, sphereDist, 0.1)
 
-    s2 = ti.Vector([1.0+x, 1.8+y, 6.0+z, 0.9**0.5])
+    s2 = ti.Vector([1.0+x, 1.8+y, 6.0+z, bump2**0.5])
     dist2 = p - xyz(s2)
     sphereDist2 = length(dist2) - s2[3]
 
     sphere0_1_2 = opSmoothUnion(sphere0_1, sphereDist2, 0.1)
    
-    s3 = ti.Vector([2.0+x, 1.5+y, 6.0+z, 0.4**0.5])
+    s3 = ti.Vector([2.0+x, 1.5+y, 6.0+z, bump3**0.5])
     dist3 = p - xyz(s3)
     sphereDist3 = length(dist3) - s3[3]
 
     sphere0_1_2_3 = opSmoothUnion(sphere0_1_2, sphereDist3, 0.1)
 
-    s4 = ti.Vector([2.6+x, 1.2+y, 6.0+z, 0.2**0.5])
+    s4 = ti.Vector([2.6+x, 1.2+y, 6.0+z, bump4**0.5])
     dist4 = p - xyz(s4)
     sphereDist4 = length(dist4) - s4[3]
 
@@ -198,36 +202,42 @@ def clouds(p, x, y, z):
     cloud = max(boxDist3, sphere0_1_2_3_4)
     
     return cloud
-    
+
 @ti.func
 def GetDist(p, t):
     intersection_object = 0
 
-    cloud = clouds(p, 0, 3, 0)
+    cloud = clouds(p, 5, 2.7, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud2 = clouds(p, 9, 2.5, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud3 = clouds(p, 1, 2.2, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
     
     planeDist = p[1]
     
-    capsuleDist = sdf_Capsule(p, ti.Vector([2,6,6]), ti.Vector([4,7,6]), 0.2)
-    capsuleDist2 = sdf_Capsule(p, ti.Vector([-1,8,6]), ti.Vector([1,7,6]), 0.2)
+    capsuleDist = sdf_Capsule(p, ti.Vector([7,6,6]), ti.Vector([9,7,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
     
     rot_mat = rotate(t)
-    box_position = p - ti.Vector([2, 9, 6])
+    box_position = p - ti.Vector([6, 9, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([2, 9, 6])
+    box_position2 = p - ti.Vector([6, 9, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
     boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
     
-    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud)
+    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud, cloud2, cloud3)
     # d = planeDist
     if d == planeDist:
       intersection_object = PLANE
     elif d == cloud:
       intersection_object = CLOUD
+    elif d == cloud2:
+      intersection_object = CLOUD2
+    elif d == cloud3:
+      intersection_object = CLOUD3      
     elif d == capsuleDist:
       intersection_object = CAPSULE
     elif d == capsuleDist2:
@@ -484,6 +494,10 @@ def getColor(int_ob):
         fin = plane_color
     elif int_ob == CLOUD: #if it hit the cloud
         fin = cloud_color
+    elif int_ob == CLOUD2: #if it hit the cloud
+        fin = cloud_color2
+    elif int_ob == CLOUD3: #if it hit the cloud
+        fin = cloud_color3
     elif int_ob == PARTICLES: #if it hit the particle
         fin = particle_color
     elif int_ob == CAPSULE: #if it hit the capsule 1
@@ -547,19 +561,19 @@ def paint(t: ti.f32):
         starting_y = 11.0
         ending_y = 3.0
         motion_y = -t*4
-        lookat_starting_y = starting_y + 2.0
-        lookat_ending_y = ending_y + 2.0
+        lookat_starting_y = starting_y + 1.0
+        lookat_ending_y = ending_y + 1.0
         # motion_y = 0
   
-        ro = ti.Vector([1.0, starting_y , 1.0])
-        lookat = ti.Vector([1.0, lookat_starting_y, 6.0])
+        ro = ti.Vector([5.0, starting_y , 1.0])
+        lookat = ti.Vector([5.0, lookat_starting_y, 6.0])
 
         if starting_y + motion_y > ending_y:
-          ro = ti.Vector([1.0, starting_y + motion_y, 1.0])
-          lookat = ti.Vector([1.0, lookat_starting_y + motion_y, 6.0]) 
+          ro = ti.Vector([5.0, starting_y + motion_y, 1.0])
+          lookat = ti.Vector([5.0, lookat_starting_y + motion_y, 6.0]) 
         else:
-          ro = ti.Vector([1.0, ending_y, 1.0])
-          lookat = ti.Vector([1.0, lookat_ending_y, 6.0])
+          ro = ti.Vector([5.0, ending_y, 1.0])
+          lookat = ti.Vector([5.0, lookat_ending_y, 6.0])
 
         zoom = 1.0
 
