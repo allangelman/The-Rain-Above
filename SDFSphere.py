@@ -39,6 +39,7 @@ wheel_color = ti.Vector([230/255, 250/255, 170/255])
 # cloud_intersection = 0
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
+frameTimeBlur = 0.01
 CLOUD  = 1
 CLOUD2  = 2
 CLOUD3  = 3
@@ -68,8 +69,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 1, 6],
-             cube_size=[0, 0, 0],
+mpm.add_cube(lower_corner=[3.5, 2.5, 5.8],
+             cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -317,7 +318,7 @@ def world_to_grid(x):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(1):
+    for p in range(num_particles[None]):
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -367,8 +368,10 @@ def dda_particle2(eye_pos, d, t, step):
 
     closest_intersection = inf
     for k in range(mpm.n_particles):
+      vel = mpm.v[k]
       pos = mpm.x[k]
-      x = ti.Vector([ pos[0], pos[1], pos[2]])
+    #   x = ti.Vector([ pos[0], pos[1], pos[2]])
+      x =  pos + step * vel
       # p = pid[ipos[0], ipos[1], ipos[2], k]
       # v = particle_v[p]
       # x = particle_x[p] + t * v
@@ -576,6 +579,7 @@ def rayCast(eye_pos, d, t, step):
     cloud_intersection2 = 0
     cloud_intersection3 = 0
     sdf_dis, intersection_object= RayMarch(eye_pos, d, t)
+    sdf_intersection = intersection_object
     sdf_discloud = RayMarchCloud(eye_pos, d, t)
     sdf_discloud2 = RayMarchCloud2(eye_pos, d, t)
     sdf_discloud3 = RayMarchCloud3(eye_pos, d, t)
@@ -588,7 +592,7 @@ def rayCast(eye_pos, d, t, step):
         cloud_intersection3 = 1
     if min(sdf_dis, particle_dis, sdf_discloud, sdf_discloud3, sdf_discloud2) == sdf_discloud2:
         cloud_intersection2 = 1
-    return min(sdf_dis, particle_dis), normal, intersection_object, sdf_discloud, cloud_intersection, sdf_discloud2, cloud_intersection2, sdf_discloud3, cloud_intersection3
+    return min(sdf_dis, particle_dis), normal, intersection_object, sdf_discloud, cloud_intersection, sdf_discloud2, cloud_intersection2, sdf_discloud3, cloud_intersection3, sdf_dis, sdf_intersection
 
 @ti.func
 def rayCast_reflection(eye_pos, d, t, step):
@@ -687,11 +691,11 @@ def GetLight(p, t, hit, nor, step, rd):
     lightPos = ti.Vector([4.0, 7.0, 3.0])
 
     l = normalize(lightPos - p)
-    n = GetNormal(p, t, hit)
+    n = ti.Vector([0.0, 0.0, 0.0])
     if hit == PARTICLES: #particles
         n = nor
     else: #sphere or plane
-        n = GetNormal(p, t, hit)
+        n = GetNormal(p, step, hit)
     # attenuating the light
     atten = 1.0 / (1.0 + l*0.2 + l*l*0.1)
     spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
@@ -731,65 +735,82 @@ def paint(t: ti.f32):
     fin = ti.Vector([0.0, 0.0, 0.0]) # Parallized over all pixels
     intensity = 0.0
 
-    for i,j in pixels: 
-        uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 360) - 0.5])
-        
-        starting_y = 1
-        ending_y = 1
-        motion_y = -t*4
-        lookat_starting_y = 1
-        lookat_ending_y = 1
-        # motion_y = 0
-  
-        ro = ti.Vector([5.0, starting_y , 1.0])
-        lookat = ti.Vector([5.0, lookat_starting_y, 6.0])
+    for i in range(n*16): #this is parallilized
+        for j in range(n*9):
+            for x in range(3):
+                uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 360) - 0.5])
+                
+                starting_y = 1
+                ending_y = 1
+                motion_y = -t*4
+                lookat_starting_y = 1
+                lookat_ending_y = 1
+                # motion_y = 0
 
-        if starting_y + motion_y > ending_y:
-          ro = ti.Vector([5.0, starting_y + motion_y, 1.0])
-          lookat = ti.Vector([5.0, lookat_starting_y + motion_y, 6.0]) 
-        else:
-          ro = ti.Vector([5.0, ending_y, 1.0])
-          lookat = ti.Vector([5.0, lookat_ending_y, 6.0])
+                ro = ti.Vector([5.0, starting_y , 1.0])
+                lookat = ti.Vector([5.0, lookat_starting_y, 6.0])
 
-        zoom = 1.0
+                if starting_y + motion_y > ending_y:
+                    ro = ti.Vector([5.0, starting_y + motion_y, 1.0])
+                    lookat = ti.Vector([5.0, lookat_starting_y + motion_y, 6.0]) 
+                else:
+                    ro = ti.Vector([5.0, ending_y, 1.0])
+                    lookat = ti.Vector([5.0, lookat_ending_y, 6.0])
 
-        forward = ti.normalized(lookat - ro)
-        right = ti.cross(ti.Vector([0.0, 1.0, 0.0]), forward)
-        up = ti.cross(forward, right)
+                zoom = 1.0
 
-        center = ro + forward*zoom
-        intersection = center + uv[0]*right + uv[1]*up
-        rd = ti.normalized(intersection - ro)
+                forward = ti.normalized(lookat - ro)
+                right = ti.cross(ti.Vector([0.0, 1.0, 0.0]), forward)
+                up = ti.cross(forward, right)
 
-        d, no, intersection_object, clouddO, cloud_intersection, clouddO2, cloud_intersection2, clouddO3, cloud_intersection3 = rayCast(ro, rd, t, 0)
-        # print(cloud_intersection)
-        p = ro + rd * d
-        # p_cloud = ro + rd * cloud
-        light, normal = GetLight(p, t, intersection_object, no, 0, rd)
-    
-        # if cloud_intersection == 1:
-        #     p_cloud = ro + rd * clouddO
-        #     light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-        #     light += light_cloud*0.30
-        # if cloud_intersection3 == 1:
-        #     p_cloud3 = ro + rd * clouddO3
-        #     light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
-        #     light += light_cloud3*0.30
-        # if cloud_intersection2 == 1:
-        #     p_cloud2 = ro + rd * clouddO2
-        #     light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
-        #     light += light_cloud2*0.30
+                center = ro + forward*zoom
+                intersection = center + uv[0]*right + uv[1]*up
+                rd = ti.normalized(intersection - ro)
 
-        # rd2 = reflect(rd, normal)
-        # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
-        #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
-            
-        #     p += rd2*d2
-            
-        #     light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
-        #     light += light2*0.20
-        
-        pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
+                d, no, intersection_object, clouddO, cloud_intersection, clouddO2, cloud_intersection2, clouddO3, cloud_intersection3, sdf, sdf_inter= rayCast(ro, rd, t, frameTimeBlur*x)
+                p = ro + rd * d
+                light, normal = GetLight(p, t, intersection_object, no, frameTimeBlur*x, rd)
+                
+                if x == 0:
+                  sdf_p = ro + rd * sdf
+                  # putting in CAPSULE  so that it renders the background instead of the particles
+                  sdf_light, normal_sdf = GetLight(sdf_p, t, sdf_inter, no, frameTimeBlur*x, rd)
+                  pixels[i, j] = ti.Vector([sdf_light[0], sdf_light[1], sdf_light[2], 1.0]) #color
+                
+                if intersection_object == PARTICLES:
+                    if x == 0:
+                      # doing pixel = pixels + ... to add the particle color value on top of the background
+                        pixels[i, j] = pixels[i, j] + ti.Vector([light[0]*0.2, light[1]*0.2, light[2]*0.2, 1.0])
+                    if x == 1:
+                        pixels[i, j] = pixels[i, j] + ti.Vector([light[0]*0.6, light[1]*0.6, light[2]*0.6, 1.0])
+                    if x == 2:
+                        pixels[i, j] = pixels[i, j] + ti.Vector([light[0]*0.9, light[1]*0.9, light[2]*0.9, 1.0])
+                
+                if x == 2:
+                # if cloud_intersection == 1:
+                #     p_cloud = ro + rd * clouddO
+                #     light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+                #     light += light_cloud*0.30
+                # if cloud_intersection3 == 1:
+                #     p_cloud3 = ro + rd * clouddO3
+                #     light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
+                #     light += light_cloud3*0.30
+                    if cloud_intersection2 == 1:
+                        p_cloud2 = ro + rd * clouddO2
+                        light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
+                        # light += light_cloud2*0.30
+                        pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud2[0]*0.2, light_cloud2[1]*0.2, light_cloud2[2]*0.2, 1.0])
+
+                # rd2 = reflect(rd, normal)
+                # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
+                #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
+                    
+                #     p += rd2*d2
+                    
+                #     light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
+                #     light += light2*0.20
+                
+                # pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
 
 ##############  MOTION BLUR ATTEMPT 1 ################
     # original_t = t
