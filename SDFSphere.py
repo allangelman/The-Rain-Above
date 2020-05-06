@@ -8,7 +8,7 @@ from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
   intersect_sphere, sphere_aabb_intersect_motion, inside_taichi
 
 ti.require_version(0, 5, 10)
-ti.init(arch=ti.x64, debug=False)
+ti.init(arch=ti.x64, debug=False, print_ir=False)
 
 n = 320
 m = 20
@@ -36,6 +36,7 @@ particle_color = ti.Vector([107/255, 115/255, 194/255])
 capsule_color = ti.Vector([234/255, 244/255, 100/255])
 capsule_color2 = ti.Vector([100/255, 189/255, 220/255])
 wheel_color = ti.Vector([50/255, 250/255, 170/255])
+# cloud_intersection = 0
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
 CLOUD  = 1
@@ -46,6 +47,7 @@ PARTICLES = 5
 CAPSULE = 6
 CAPSULE2 = 7
 WHEEL = 8
+debug = True
 
 pid = ti.var(ti.i32)
 num_particles = ti.var(ti.i32, shape=())
@@ -66,8 +68,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3, 2.0, 6],
-             cube_size=[0, 0, 0],
+mpm.add_cube(lower_corner=[3, 1, 6],
+             cube_size=[1, 1, 1],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -202,48 +204,79 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
     cloud = max(boxDist3, sphere0_1_2_3_4)
     
     return cloud
+@ti.func
+def GetDistCloud(p, t):
+    cloud = clouds(p, 5, -0.7, -1, 0.7, 1.25, 0.9, 0.4, 0.2)
+    return cloud
+
+@ti.func
+def planeSDF(p, n):
+    # n_norm = ti.normalized(n)
+    nxyz = ti.Vector([n[0], n[1], n[2]])
+    return ti.dot(p,nxyz) + n[3]
 
 @ti.func
 def GetDist(p, t):
     intersection_object = 0
+    # planeDist = p[1]
+    planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/3.0, 8.0/3.0]))
+    d = 0.0
+    d2 = 0.0
+    cloud = 0.0
+    cloud2 = 0.0
+    capsuleDist =0.0
+    cloud_intersection = 0
+    
+    if ti.static(debug): 
+        # d = planeDist
+        # cloud = clouds(p, 5, -0.7, -1, 0.7, 1.25, 0.9, 0.4, 0.2)
+        capsuleDist = sdf_Capsule(p, ti.Vector([5,0,6]), ti.Vector([6,1,6]), 0.2)
+        # cloud2 = clouds(p, 5, 0, -1.5, 0.7, 1.0, 1.25, 0.7, 0.4)
+        d = min(planeDist, capsuleDist)
+        # d2 = min(planeDist, capsuleDist, cloud)
+        # if cloud<d:
+        #     # print(cloud)
+        #     cloud_intersection = 1
+        # else:
+        #     cloud_intersection = 0
+    else:
+        cloud = clouds(p, 5, 2.7 + ti.sin(t*4)*0.25, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
+        cloud2 = clouds(p, 9, 2.5 - ti.sin(t*4)*0.25, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
+        cloud3 = clouds(p, 1, 2.2 + ti.cos(t*3)*0.25, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
 
-    cloud = clouds(p, 5, 2.7 + ti.sin(t*4)*0.25, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
-    cloud2 = clouds(p, 9, 2.5 - ti.sin(t*4)*0.25, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
-    cloud3 = clouds(p, 1, 2.2 + ti.cos(t*3)*0.25, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
-    
-    planeDist = p[1]
-    
-    capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
-    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
-    
-    rot_mat = rotate(t)
-    box_position = p - ti.Vector([6, 9, 6])
-    box_position_rotated = rotate_axis_z(box_position, rot_mat)
-    boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
+        capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
+        capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
+        
+        rot_mat = rotate(t)
+        box_position = p - ti.Vector([6, 9, 6])
+        box_position_rotated = rotate_axis_z(box_position, rot_mat)
+        boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([6, 9, 6])
-    box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
-    boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
+        box_position2 = p - ti.Vector([6, 9, 6])
+        box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
+        boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
+
+        d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud, cloud2, cloud3)
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
-    
-    # d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud, cloud2, cloud3)
-    d = planeDist
+
     if d == planeDist:
       intersection_object = PLANE
-    elif d == cloud:
-      intersection_object = CLOUD
-    elif d == cloud2:
-      intersection_object = CLOUD2
-    elif d == cloud3:
-      intersection_object = CLOUD3      
+    # elif d == cloud:
+    #   intersection_object = CLOUD
+    # elif d == cloud2:
+    #   intersection_object = CLOUD2
+    # elif d == cloud3:
+    #   intersection_object = CLOUD3      
     elif d == capsuleDist:
       intersection_object = CAPSULE
-    elif d == capsuleDist2:
-      intersection_object = CAPSULE2
-    else:
-      intersection_object = WHEEL
+    # elif d == capsuleDist2:
+    #   intersection_object = CAPSULE2
+    # else:
+    #   intersection_object = WHEEL
+    # print(cloud_intersection)
+    
     return d, intersection_object
 
 
@@ -302,7 +335,40 @@ def initialize_particle_grid():
                             # print(voxel_has_particle[box_ipos])
                         ti.append(pid.parent(), box_ipos, p)
                         voxel_has_particle[box_ipos] = 1
+@ti.func
+def dda_particle2(eye_pos, d, t, step):
+    bbox_min = bbox[0]
+    bbox_max = bbox[1]
 
+    hit_pos = ti.Vector([0.0, 0.0, 0.0])
+    normal = ti.Vector([0.0, 0.0, 0.0])
+    c = ti.Vector([0.0, 0.0, 0.0])
+    for i in ti.static(range(3)):
+        if abs(
+                d[i]
+        ) < 1e-6:  #iterating over three components of direction vector from rayCast func
+            d[i] = 1e-6  #assigning a lower bound to direction vec components... not sure why?
+
+    inter, near, far = ray_aabb_intersection(bbox_min, bbox_max, eye_pos,
+                                             d)  #findimg
+    near = max(0, near)
+
+    closest_intersection = inf
+    for k in range(mpm.n_particles):
+      pos = mpm.x[k]
+      x = ti.Vector([ pos[0], pos[1], pos[2]])
+      # p = pid[ipos[0], ipos[1], ipos[2], k]
+      # v = particle_v[p]
+      # x = particle_x[p] + t * v
+      # color = particle_color[p]
+      # ray-sphere intersection
+      dist, poss = intersect_sphere(eye_pos, d, x, sphere_radius)
+      hit_pos = poss
+      if dist < closest_intersection and dist > 0:
+        hit_pos = eye_pos + dist * d
+        closest_intersection = dist
+        normal = ti.Matrix.normalized(hit_pos - x)
+    return closest_intersection, normal
 
 @ti.func
 def dda_particle(eye_pos, d, t, step):
@@ -408,22 +474,65 @@ def dda_particle(eye_pos, d, t, step):
 @ti.func
 def RayMarch(ro, rd, t):
     intersection_object = 0
+    cloud_intersection = 0
+    cloud_int = 0
     dO = 0.0
+    clouddO = 0.02
     i = 0
+    cloud = 0.0
     while i < MAX_STEPS:
         p = ro + rd * dO
         dS, intersection_object = GetDist(p, t)
+        # clouddS = GetDistCloud(p, t)
+        # dS = min(dS, GetDistCloud(p, t))
         dO += dS
+        
+        # p_cloud = ro + rd * clouddO
+        # clouddS = GetDistCloud(p, t)
+        # if (clouddS < dS):
+        #     cloud_int = 1
+        # if (clouddO >= SURF_DIST or clouddO < MAX_DIST) and clouddS < dS:
+        #     clouddO += clouddS
+        #     cloud_int = 1
+
+        # if cloud_intersection == 1:
+        #     cloud_int = 1
         if dO > MAX_DIST or dS < SURF_DIST:
             break
         i = i + 1
     return dO, intersection_object
 
 @ti.func
-def RayMarch_reflection(ro, rd, t):
-    intersection_object = 0
+def RayMarchCloud(ro, rd, t):
     dO = 0.0
     i = 0
+    while i < MAX_STEPS:
+        p = ro + rd * dO
+        dS = GetDistCloud(p, t)
+        # dS = min(dS, GetDistCloud(p, t))
+        dO += dS
+        
+        # p_cloud = ro + rd * clouddO
+        # clouddS = GetDistCloud(p_cloud, t)
+        # if (clouddO >= SURF_DIST or clouddO < MAX_DIST) and clouddS < dS:
+        #     clouddO += clouddS
+        #     cloud_int = 1
+
+        # if cloud_intersection == 1:
+        #     cloud_int = 1
+        if dO > MAX_DIST or dS < SURF_DIST:
+            break
+        i = i + 1
+    return dO
+
+
+@ti.func
+def RayMarch_reflection(ro, rd, t):
+    intersection_object = 0
+    cloud_intersection = 0
+    dO = 0.0
+    i = 0
+    cloud = 0.0
     while i < MAX_STEPS_reflection:
         p = ro + rd * dO
         dS, intersection_object = GetDist(p, t)
@@ -436,11 +545,15 @@ def RayMarch_reflection(ro, rd, t):
 
 @ti.func
 def rayCast(eye_pos, d, t, step):
-    sdf_dis, intersection_object = RayMarch(eye_pos, d, t)
-    particle_dis, normal = dda_particle(eye_pos, d, t, step)
-    if min(sdf_dis, particle_dis) == particle_dis:
+    cloud_intersection = 0
+    sdf_dis, intersection_object= RayMarch(eye_pos, d, t)
+    sdf_discloud = RayMarchCloud(eye_pos, d, t)
+    particle_dis, normal = dda_particle2(eye_pos, d, t, step)
+    if min(sdf_dis, particle_dis, sdf_discloud) == particle_dis:
         intersection_object = PARTICLES
-    return min(sdf_dis, particle_dis), normal, intersection_object, sdf_dis
+    elif min(sdf_dis, particle_dis, sdf_discloud) == sdf_discloud:
+        cloud_intersection = 1
+    return min(sdf_dis, particle_dis), normal, intersection_object, sdf_discloud, cloud_intersection
 
 @ti.func
 def rayCast_reflection(eye_pos, d, t, step):
@@ -527,9 +640,9 @@ def GetLight(p, t, hit, nor, step, rd):
     spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
     diff = clamp(ti.dot(n, l))    
 
-    d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
-    if (d < length(lightPos - p)):
-        diff = diff * 0.1
+    # d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
+    # if (d < length(lightPos - p)):
+    #     diff = diff * 0.1
     diff = (diff + 1.0)/2.0
 
 
@@ -563,7 +676,7 @@ def paint(t: ti.f32):
         
         starting_y = 1
         ending_y = 1
-        motion_y = 0
+        motion_y = -t*4
         lookat_starting_y = 1
         lookat_ending_y = 1
         # motion_y = 0
@@ -588,10 +701,19 @@ def paint(t: ti.f32):
         intersection = center + uv[0]*right + uv[1]*up
         rd = ti.normalized(intersection - ro)
 
-        d, no, intersection_object = rayCast(ro, rd, t, 0)
+        d, no, intersection_object, clouddO, cloud_intersection = rayCast(ro, rd, t, 0)
+        print(cloud_intersection)
         p = ro + rd * d
+        # p_cloud = ro + rd * cloud
         light, normal = GetLight(p, t, intersection_object, no, 0, rd)
-        
+        p_cloud = ro + rd * clouddO
+        light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+        if cloud_intersection == 1:
+            # print(cloud_intersection)
+            # p_cloud = ro + rd * clouddO
+            # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+            light += light_cloud*0.2
+
         # rd2 = reflect(rd, normal)
         # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
         #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
@@ -681,13 +803,13 @@ def main():
             # min_val = ( math.floor( np_x[:, i].min() ) / 10 * particle_grid_res - 3 ) / (particle_grid_res / 10)
             min_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].min())) - 3 ) 
             # print((math.floor(np_x[:, i].min())))
-            print(min_val)
+            # print(min_val)
 
 
             # max_val = (math.floor(np_x[:, i].max()) / 10 * particle_grid_res + 3) / (particle_grid_res / 10)
             max_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].max())) + 3 ) 
             # print((math.floor(np_x[:, i].max())))
-            print(max_val)  
+            # print(max_val)  
 
             # if min_val < 0:
             #   min_val = 0
@@ -701,14 +823,15 @@ def main():
         #clear particle grid and pid voxel has particle
         initialize_particle_x(np_x, np_v)
         initialize_particle_grid()
-        print(mpm.x[0][0])
-        print(mpm.x[0][1])
-        print(mpm.x[0][2])
+        # print(mpm.x[0][0])
+        # print(mpm.x[0][1])
+        # print(mpm.x[0][2])
 
         #smaller timestep or implicit time integrator for water/snow error
         paint(frame * frameTime)
         
         gui.set_image(pixels)
+        # gui.show(f'{frame:04d}.png')
         gui.show()
 
 
