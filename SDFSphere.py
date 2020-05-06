@@ -9,6 +9,7 @@ from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
 
 ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64, debug=False, print_ir=False)
+ti.core.toggle_advanced_optimization(False)
 
 n = 40
 m = 20
@@ -798,7 +799,7 @@ def paint(t: ti.f32):
                     if x == 2:
                         pixels[i, j] = pixels[i, j]*alpha2 + ti.Vector([light[0]*0.9, light[1]*0.9, light[2]*0.9, 1.0/(1-alpha2)])*(1-alpha2)
                 
-                alpha4 = 0.7
+                alpha4 = 0.5
                 if x == 2:
                 # if cloud_intersection == 1:
                 #     p_cloud = ro + rd * clouddO
