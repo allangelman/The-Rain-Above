@@ -28,7 +28,7 @@ refractionRatio = 1.0 / REFRACT_INDEX
 distanceFactor = 1.0
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
-cloud_color = ti.Vector([234/255, 244/255, 255/255])
+cloud_color = ti.Vector([100/255, 244/255, 255/255])
 cloud_color2 = ti.Vector([210/255, 250/255, 245/255])
 cloud_color3 = ti.Vector([225/255, 255/255, 235/255])
 plane_color = ti.Vector([210/255, 230/255, 249/255])
@@ -161,7 +161,7 @@ def rotate_axis_z(box_position, rot_mat):
 
 @ti.func
 def mix(x, y, a):
-    return x * (1-a) + y * a
+    return x * (1.0-a) + y * a
 
 @ti.func
 def opSmoothUnion(d1, d2, k):
@@ -170,11 +170,11 @@ def opSmoothUnion(d1, d2, k):
 
 @ti.func
 def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
-    s0 = ti.Vector([-1+x, 1.4+y, 6.0+z, bump0**0.5])
+    s0 = ti.Vector([-1.0+x, 1.4+y, 6.0+z, bump0**0.5])
     dist0 = p - xyz(s0)
     sphereDist0 = length(dist0) - s0[3]
     
-    s = ti.Vector([0+x, 2.0+y, 6.0+z, bump1**0.5])
+    s = ti.Vector([0.0+x, 2.0+y, 6.0+z, bump1**0.5])
     dist = p - xyz(s)
     sphereDist = length(dist) - s[3]
     
@@ -198,23 +198,26 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 
     sphere0_1_2_3_4 = opSmoothUnion(sphere0_1_2_3, sphereDist4, 0.1)
     
-    box_position3 = p - ti.Vector([1+x, 3.2+y, 6.0+z])
-    boxDist3 = sdf_Box(box_position3, ti.Vector([4, 2, 0.1]), 0.1)
+    box_position3 = p - ti.Vector([1.0+x, 3.2+y, 6.0+z])
+    boxDist3 = sdf_Box(box_position3, ti.Vector([4.0, 2.0, 0.1]), 0.1)
 
     cloud = max(boxDist3, sphere0_1_2_3_4)
     
     return cloud
 @ti.func
 def GetDistCloud(p, t):
-    cloud = clouds(p, 9, 0.2 - ti.sin(t*4)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud = 0.0
+    cloud = clouds(p, 9.0, 0.2 - ti.sin(t*4.0)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
     return cloud
 @ti.func
 def GetDistCloud2(p, t):
-    cloud = clouds(p, 5, 0 + ti.sin(t*4)*0.25, -0.7, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud = 0.0
+    cloud = clouds(p, 5.0, 0.0 + ti.sin(t*4.0)*0.25, -0.7, 0.7, 1.25, 0.9, 0.4, 0.2)
     return cloud
 @ti.func
 def GetDistCloud3(p, t):
-    cloud = clouds(p, 1, 0.2 + ti.cos(t*3)*0.25, -0.3, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = 0.0
+    cloud = clouds(p, 1.0, 0.2 + ti.cos(t*3.0)*0.25, -0.3, 0.6, 1.0, 1.1, 1.25, 0.6)
     return cloud
 
 @ti.func
@@ -238,6 +241,7 @@ def GetDist(p, t):
     if ti.static(debug): 
         # d = planeDist
         # cloud = clouds(p, 5, -0.7, -1, 0.7, 1.25, 0.9, 0.4, 0.2)
+        # cloud = clouds(p, 9, 0.2 - ti.sin(t*4)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
         capsuleDist = sdf_Capsule(p, ti.Vector([5,0,6]), ti.Vector([6,1,6]), 0.2)
         # cloud2 = clouds(p, 5, 0, -1.5, 0.7, 1.0, 1.25, 0.7, 0.4)
         d = min(planeDist, capsuleDist)
@@ -599,25 +603,47 @@ def normalize(p):
     return ti.Vector([p[0] / length(p), p[1] / length(p), p[2] / length(p)])
 
 @ti.func
-def GetNormal(p, t):
-    d, intersection_object = GetDist(p, t)
+def GetNormal(p, t, intersection_object):
+    d = 0.0
+    x = 0.0
+    y = 0.0
+    z = 0.0
+    # intersection_object = 0
     e1 = ti.Vector([0.01, 0.0, 0.0])
     e2 = ti.Vector([0.0, 0.01, 0.0])
     e3 = ti.Vector([0.0, 0.0, 0.01])
-    x, intersection_object = GetDist(p - e1, t)
-    y, intersection_object = GetDist(p - e2, t)
-    z, intersection_object = GetDist(p - e3, t)
+    if (intersection_object == CLOUD):
+        d = GetDistCloud(p, t)
+        x = GetDistCloud(p - e1, t)
+        y = GetDistCloud(p - e2, t)
+        z = GetDistCloud(p - e3, t)
+    elif (intersection_object == CLOUD2):
+        d = GetDistCloud2(p, t)
+        x = GetDistCloud2(p - e1, t)
+        y = GetDistCloud2(p - e2, t)
+        z = GetDistCloud2(p - e3, t)
+    elif (intersection_object == CLOUD3):
+        d = GetDistCloud3(p, t)
+        x = GetDistCloud3(p - e1, t)
+        y = GetDistCloud3(p - e2, t)
+        z = GetDistCloud3(p - e3, t)
+    else:
+        d, inter = GetDist(p, t)
+        x, inter = GetDist(p - e1, t)
+        y, inter = GetDist(p - e2, t)
+        z, inter = GetDist(p - e3, t)
     n = ti.Vector([d - x, d - y, d - z])
     return normalize(n)
+
 
 
 @ti.func
 def clamp(p):
 
-    if p < 0:
-        p = 0
-    if p > 1:
-        p = 1
+    if p < 0.0:
+        p = 0.0
+    if p > 1.0:
+        p = 1.0
     return p
 
 @ti.func
@@ -658,19 +684,22 @@ def getColor(int_ob):
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0.0, 10.0, 6.0])
+    lightPos = ti.Vector([4.0, 7.0, 3.0])
 
     l = normalize(lightPos - p)
-    n = GetNormal(p, t)
+    n = GetNormal(p, t, hit)
     if hit == PARTICLES: #particles
         n = nor
     else: #sphere or plane
-        n = GetNormal(p, t)
+        n = GetNormal(p, t, hit)
     # attenuating the light
     atten = 1.0 / (1.0 + l*0.2 + l*l*0.1)
     spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
     diff = clamp(ti.dot(n, l))    
-
+    if hit == CLOUD:
+        print(n[0])
+        print(n[1])
+        print(n[2])
     # d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
     # if (d < length(lightPos - p)):
     #     diff = diff * 0.1
@@ -679,7 +708,7 @@ def GetLight(p, t, hit, nor, step, rd):
 
     sceneCol = (getColor(hit)*(diff + 0.15) + ti.Vector([0.8, 0.8, 0.2])*spec*0.5) * atten
     
-    return sceneCol, n
+    return getColor(hit)*diff , n
 
 
 @ti.kernel
@@ -733,31 +762,31 @@ def paint(t: ti.f32):
         rd = ti.normalized(intersection - ro)
 
         d, no, intersection_object, clouddO, cloud_intersection, clouddO2, cloud_intersection2, clouddO3, cloud_intersection3 = rayCast(ro, rd, t, 0)
-        print(cloud_intersection)
+        # print(cloud_intersection)
         p = ro + rd * d
         # p_cloud = ro + rd * cloud
         light, normal = GetLight(p, t, intersection_object, no, 0, rd)
-        p_cloud = ro + rd * clouddO
-        light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-        p_cloud2 = ro + rd * clouddO2
-        light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
-        p_cloud3 = ro + rd * clouddO3
-        light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
+        # p_cloud = ro + rd * clouddO
+        # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+        # p_cloud2 = ro + rd * clouddO2
+        # light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
+        # p_cloud3 = ro + rd * clouddO3
+        # light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
         if cloud_intersection == 1:
             # print(cloud_intersection)
-            # p_cloud = ro + rd * clouddO
-            # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-            light += light_cloud*0.2
-        if cloud_intersection3 == 1:
-            # print(cloud_intersection)
-            # p_cloud = ro + rd * clouddO
-            # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-            light += light_cloud3*0.2
-        if cloud_intersection2 == 1:
-            # print(cloud_intersection)
-            # p_cloud = ro + rd * clouddO
-            # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-            light += light_cloud2*0.2
+            p_cloud = ro + rd * clouddO
+            light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+            light = light_cloud
+        # if cloud_intersection3 == 1:
+        #     # print(cloud_intersection)
+        #     # p_cloud = ro + rd * clouddO
+        #     # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+        #     light += light_cloud3
+        # if cloud_intersection2 == 1:
+        #     # print(cloud_intersection)
+        #     # p_cloud = ro + rd * clouddO
+        #     # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+        #     light += light_cloud2
 
         # rd2 = reflect(rd, normal)
         # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
