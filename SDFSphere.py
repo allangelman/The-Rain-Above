@@ -35,7 +35,7 @@ plane_color = ti.Vector([210/255, 230/255, 249/255])
 particle_color = ti.Vector([107/255, 115/255, 194/255])
 capsule_color = ti.Vector([234/255, 244/255, 100/255])
 capsule_color2 = ti.Vector([100/255, 189/255, 220/255])
-wheel_color = ti.Vector([50/255, 250/255, 170/255])
+wheel_color = ti.Vector([230/255, 250/255, 170/255])
 # cloud_intersection = 0
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
@@ -68,8 +68,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3, 1, 6],
-             cube_size=[1, 1, 1],
+mpm.add_cube(lower_corner=[1, 1, 6],
+             cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -207,17 +207,17 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 @ti.func
 def GetDistCloud(p, t):
     cloud = 0.0
-    cloud = clouds(p, 9.0, 0.2 - ti.sin(t*4.0)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud = clouds(p, 9.0, -1.2 - ti.sin(t*4.0)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
     return cloud
 @ti.func
 def GetDistCloud2(p, t):
     cloud = 0.0
-    cloud = clouds(p, 5.0, 0.0 + ti.sin(t*4.0)*0.25, -0.7, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud = clouds(p, 5.0, -1.0 + ti.sin(t*4.0)*0.25, -0.7, 0.7, 1.25, 0.9, 0.4, 0.2)
     return cloud
 @ti.func
 def GetDistCloud3(p, t):
     cloud = 0.0
-    cloud = clouds(p, 1.0, 0.2 + ti.cos(t*3.0)*0.25, -0.3, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = clouds(p, 1.0, -1.2 + ti.cos(t*3.0)*0.25, -0.3, 0.6, 1.0, 1.1, 1.25, 0.6)
     return cloud
 
 @ti.func
@@ -242,7 +242,7 @@ def GetDist(p, t):
         # d = planeDist
         # cloud = clouds(p, 5, -0.7, -1, 0.7, 1.25, 0.9, 0.4, 0.2)
         # cloud = clouds(p, 9, 0.2 - ti.sin(t*4)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
-        capsuleDist = sdf_Capsule(p, ti.Vector([5,0,6]), ti.Vector([6,1,6]), 0.2)
+        capsuleDist = sdf_Capsule(p, ti.Vector([1,0,6]), ti.Vector([9,2,6]), 0.2)
         # cloud2 = clouds(p, 5, 0, -1.5, 0.7, 1.0, 1.25, 0.7, 0.4)
         d = min(planeDist, capsuleDist)
         # d2 = min(planeDist, capsuleDist, cloud)
@@ -317,7 +317,7 @@ def world_to_grid(x):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(1):
+    for p in range(num_particles[None]):
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -580,7 +580,7 @@ def rayCast(eye_pos, d, t, step):
     sdf_discloud2 = RayMarchCloud2(eye_pos, d, t)
     sdf_discloud3 = RayMarchCloud3(eye_pos, d, t)
     particle_dis, normal = dda_particle2(eye_pos, d, t, step)
-    if min(sdf_dis, particle_dis, sdf_discloud, sdf_discloud2) == particle_dis:
+    if min(sdf_dis, particle_dis) == particle_dis:
         intersection_object = PARTICLES
     if min(sdf_dis, particle_dis, sdf_discloud) == sdf_discloud:
         cloud_intersection = 1
@@ -696,19 +696,19 @@ def GetLight(p, t, hit, nor, step, rd):
     atten = 1.0 / (1.0 + l*0.2 + l*l*0.1)
     spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
     diff = clamp(ti.dot(n, l))    
-    if hit == CLOUD:
-        print(n[0])
-        print(n[1])
-        print(n[2])
+    # if hit == CLOUD:
+    #     print(n[0])
+    #     print(n[1])
+    #     print(n[2])
     # d, n_, intersection_object, sdf = rayCast(p + n * SURF_DIST * 2.0, l, t, step)
     # if (d < length(lightPos - p)):
     #     diff = diff * 0.1
-    diff = (diff + 1.0)/2.0
+    # diff = (diff + 1.0)/2.0
 
 
     sceneCol = (getColor(hit)*(diff + 0.15) + ti.Vector([0.8, 0.8, 0.2])*spec*0.5) * atten
     
-    return getColor(hit)*diff , n
+    return sceneCol , n
 
 
 @ti.kernel
@@ -776,17 +776,17 @@ def paint(t: ti.f32):
             # print(cloud_intersection)
             p_cloud = ro + rd * clouddO
             light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-            light = light_cloud
-        # if cloud_intersection3 == 1:
+            light += light_cloud*0.30
+        if cloud_intersection3 == 1:
         #     # print(cloud_intersection)
-        #     # p_cloud = ro + rd * clouddO
-        #     # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-        #     light += light_cloud3
-        # if cloud_intersection2 == 1:
+            p_cloud3 = ro + rd * clouddO3
+            light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
+            light += light_cloud3*0.30
+        if cloud_intersection2 == 1:
         #     # print(cloud_intersection)
-        #     # p_cloud = ro + rd * clouddO
-        #     # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-        #     light += light_cloud2
+            p_cloud2 = ro + rd * clouddO2
+            light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
+            light += light_cloud2*0.30
 
         # rd2 = reflect(rd, normal)
         # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
