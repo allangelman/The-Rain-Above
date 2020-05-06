@@ -661,7 +661,7 @@ def step(t):
     mpm.step(3e-2, t)
 
 def main():
-    for frame in range(1000000):
+    for frame in range(1):
         clear_pid()
         mpm.step(3e-2, frame * frameTime)
   
