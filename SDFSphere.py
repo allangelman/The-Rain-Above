@@ -206,15 +206,15 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
     return cloud
 @ti.func
 def GetDistCloud(p, t):
-    cloud = clouds(p, 9, 1 - ti.sin(t*4)*0.25, 0, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud = clouds(p, 9, 0.2 - ti.sin(t*4)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
     return cloud
 @ti.func
 def GetDistCloud2(p, t):
-    cloud = clouds(p, 5, 0.8 + ti.sin(t*4)*0.25, -0.7, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud = clouds(p, 5, 0 + ti.sin(t*4)*0.25, -0.7, 0.7, 1.25, 0.9, 0.4, 0.2)
     return cloud
 @ti.func
 def GetDistCloud3(p, t):
-    cloud = clouds(p, 1, 1 + ti.cos(t*3)*0.25, 0, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = clouds(p, 1, 0.2 + ti.cos(t*3)*0.25, -0.3, 0.6, 1.0, 1.1, 1.25, 0.6)
     return cloud
 
 @ti.func
@@ -227,7 +227,7 @@ def planeSDF(p, n):
 def GetDist(p, t):
     intersection_object = 0
     # planeDist = p[1]
-    planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/3.0, 8.0/3.0]))
+    planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/ti.sqrt(101.0), 10.0/ti.sqrt(101.0)]))
     d = 0.0
     d2 = 0.0
     cloud = 0.0
@@ -658,7 +658,7 @@ def getColor(int_ob):
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0.0, 10.0, 3.0])
+    lightPos = ti.Vector([0.0, 10.0, 6.0])
 
     l = normalize(lightPos - p)
     n = GetNormal(p, t)
