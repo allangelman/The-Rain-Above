@@ -10,10 +10,10 @@ from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
 ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64, debug=False, print_ir=False)
 
-n = 320
+n = 40
 m = 20
 hit_sphere = 0
-pixels = ti.Vector(4, dt=ti.f32, shape=(n * 2, n))
+pixels = ti.Vector(4, dt=ti.f32, shape=(n * 16, n*9))
 support = 1
 shutter_time = 0.5e-3
 sphere_radius = 0.03
@@ -69,7 +69,7 @@ def buffers():
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
 mpm.add_cube(lower_corner=[1, 1, 6],
-             cube_size=[0.5, 0.5, 0.5],
+             cube_size=[0, 0, 0],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -242,7 +242,7 @@ def GetDist(p, t):
         # d = planeDist
         # cloud = clouds(p, 5, -0.7, -1, 0.7, 1.25, 0.9, 0.4, 0.2)
         # cloud = clouds(p, 9, 0.2 - ti.sin(t*4)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
-        capsuleDist = sdf_Capsule(p, ti.Vector([1,0,6]), ti.Vector([9,2,6]), 0.2)
+        capsuleDist = sdf_Capsule(p, ti.Vector([3,0,6]), ti.Vector([4,2,6]), 0.2)
         # cloud2 = clouds(p, 5, 0, -1.5, 0.7, 1.0, 1.25, 0.7, 0.4)
         d = min(planeDist, capsuleDist)
         # d2 = min(planeDist, capsuleDist, cloud)
@@ -317,7 +317,7 @@ def world_to_grid(x):
 
 @ti.kernel
 def initialize_particle_grid():
-    for p in range(num_particles[None]):
+    for p in range(1):
         x = mpm.x[p]
         v = mpm.v[p]
         # ipos = ti.Matrix.floor(x * particle_grid_res).cast(ti.i32)
@@ -349,21 +349,21 @@ def initialize_particle_grid():
                         voxel_has_particle[box_ipos] = 1
 @ti.func
 def dda_particle2(eye_pos, d, t, step):
-    bbox_min = bbox[0]
-    bbox_max = bbox[1]
+    # bbox_min = bbox[0]
+    # bbox_max = bbox[1]
 
     hit_pos = ti.Vector([0.0, 0.0, 0.0])
     normal = ti.Vector([0.0, 0.0, 0.0])
-    c = ti.Vector([0.0, 0.0, 0.0])
-    for i in ti.static(range(3)):
-        if abs(
-                d[i]
-        ) < 1e-6:  #iterating over three components of direction vector from rayCast func
-            d[i] = 1e-6  #assigning a lower bound to direction vec components... not sure why?
+    # c = ti.Vector([0.0, 0.0, 0.0])
+    # for i in ti.static(range(3)):
+    #     if abs(
+    #             d[i]
+    #     ) < 1e-6:  #iterating over three components of direction vector from rayCast func
+    #         d[i] = 1e-6  #assigning a lower bound to direction vec components... not sure why?
 
-    inter, near, far = ray_aabb_intersection(bbox_min, bbox_max, eye_pos,
-                                             d)  #findimg
-    near = max(0, near)
+    # inter, near, far = ray_aabb_intersection(bbox_min, bbox_max, eye_pos,
+    #                                          d)  #findimg
+    # near = max(0, near)
 
     closest_intersection = inf
     for k in range(mpm.n_particles):
@@ -732,7 +732,7 @@ def paint(t: ti.f32):
     intensity = 0.0
 
     for i,j in pixels: 
-        uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 320) - 0.5])
+        uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 360) - 0.5])
         
         starting_y = 1
         ending_y = 1
@@ -766,27 +766,19 @@ def paint(t: ti.f32):
         p = ro + rd * d
         # p_cloud = ro + rd * cloud
         light, normal = GetLight(p, t, intersection_object, no, 0, rd)
-        # p_cloud = ro + rd * clouddO
-        # light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-        # p_cloud2 = ro + rd * clouddO2
-        # light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
-        # p_cloud3 = ro + rd * clouddO3
-        # light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
-        if cloud_intersection == 1:
-            # print(cloud_intersection)
-            p_cloud = ro + rd * clouddO
-            light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-            light += light_cloud*0.30
-        if cloud_intersection3 == 1:
-        #     # print(cloud_intersection)
-            p_cloud3 = ro + rd * clouddO3
-            light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
-            light += light_cloud3*0.30
-        if cloud_intersection2 == 1:
-        #     # print(cloud_intersection)
-            p_cloud2 = ro + rd * clouddO2
-            light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
-            light += light_cloud2*0.30
+    
+        # if cloud_intersection == 1:
+        #     p_cloud = ro + rd * clouddO
+        #     light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+        #     light += light_cloud*0.30
+        # if cloud_intersection3 == 1:
+        #     p_cloud3 = ro + rd * clouddO3
+        #     light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
+        #     light += light_cloud3*0.30
+        # if cloud_intersection2 == 1:
+        #     p_cloud2 = ro + rd * clouddO2
+        #     light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
+        #     light += light_cloud2*0.30
 
         # rd2 = reflect(rd, normal)
         # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
@@ -797,16 +789,6 @@ def paint(t: ti.f32):
         #     light2, normal2 = GetLight(p, t+(0.03*0), intersection_object2, no2, 0.03*0, rd2)
         #     light += light2*0.20
         
-        # rd3 = refract(rd, normal, refractionRatio)
-        # if (intersection_object == CLOUD or intersection_object == CLOUD2 or intersection_object == CLOUD3):
-        #     d3, no3, intersection_object3 = rayCast_reflection(ro +  normal*.003, rd3, t+(0.03*0), 0.03*0)
-            
-        #     p += rd3*d3
-            
-        #     light3, normal3 = GetLight(p, t+(0.03*0), intersection_object3, no3, 0.03*0, rd3)
-        #     light = light*0.8 + light3*0.20
-
-            
         pixels[i, j] = ti.Vector([light[0], light[1], light[2], 1.0]) #color
 
 ##############  MOTION BLUR ATTEMPT 1 ################
@@ -842,7 +824,7 @@ def paint(t: ti.f32):
     #                   pixels[i, j] += ti.Vector([light * 0.6, light * 0.6, light * 0.6, 1.0])
 ##############  MOTION BLUR ATTEMPT 1 ################            
 
-gui = ti.GUI("Fractl", (n * 2, n))
+gui = ti.GUI("Fractl", (n * 16, n* 9))
 
 
 @ti.kernel
@@ -863,43 +845,18 @@ def main():
   
         np_x, np_v, np_material = mpm.particle_info()
         
-        for i in range(3):
-            # min_val = (math.floor(np_x[:, i].min() * particle_grid_res) - 
-            #           3) / particle_grid_res
-            # max_val = (math.floor(np_x[:, i].max() * particle_grid_res) + 
-            #           3) / particle_grid_res
-            
-            # min_val = 10*(math.floor(np_x[:, i].min() * particle_grid_res) - 
-            #           3) / particle_grid_res
-            # max_val = 10*(math.floor(np_x[:, i].max() * particle_grid_res) + 
-            #           3) / particle_grid_res
+        # for i in range(3):
+        
+        #     min_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].min())) - 3 ) 
+        
+        #     max_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].max())) + 3 ) 
 
-            # min_val = ( math.floor( np_x[:, i].min() ) / 10 * particle_grid_res - 3 ) / (particle_grid_res / 10)
-            min_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].min())) - 3 ) 
-            # print((math.floor(np_x[:, i].min())))
-            # print(min_val)
-
-
-            # max_val = (math.floor(np_x[:, i].max()) / 10 * particle_grid_res + 3) / (particle_grid_res / 10)
-            max_val = grid_to_world( world_to_grid( math.floor(np_x[:, i].max())) + 3 ) 
-            # print((math.floor(np_x[:, i].max())))
-            # print(max_val)  
-
-            # if min_val < 0:
-            #   min_val = 0
-
-            # min_val = 0
-            # max_val = 10
-
-            bbox[1][i] = max_val
-            bbox[0][i] = min_val
+        #     bbox[1][i] = max_val
+        #     bbox[0][i] = min_val
 
         #clear particle grid and pid voxel has particle
-        initialize_particle_x(np_x, np_v)
-        initialize_particle_grid()
-        # print(mpm.x[0][0])
-        # print(mpm.x[0][1])
-        # print(mpm.x[0][2])
+        # initialize_particle_x(np_x, np_v)
+        # initialize_particle_grid()
 
         #smaller timestep or implicit time integrator for water/snow error
         paint(frame * frameTime)
