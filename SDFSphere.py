@@ -36,7 +36,7 @@ plane_color = ti.Vector([210/255, 230/255, 249/255])
 particle_color = ti.Vector([107/255, 115/255, 194/255])
 capsule_color = ti.Vector([234/255, 244/255, 100/255])
 capsule_color2 = ti.Vector([100/255, 189/255, 220/255])
-wheel_color = ti.Vector([230/255, 250/255, 170/255])
+wheel_color = ti.Vector([50/255, 250/255, 170/255])
 # cloud_intersection = 0
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
@@ -232,7 +232,7 @@ def planeSDF(p, n):
 def GetDist(p, t):
     intersection_object = 0
     # planeDist = p[1]
-    planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/ti.sqrt(101.0), 10.0/ti.sqrt(101.0)]))
+    planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/ti.sqrt(37.0), 6.0/ti.sqrt(37.0)]))
     # d = 0.0
     # capsuleDist =0.0
     # capsuleDist2 = 0.0
@@ -258,9 +258,6 @@ def GetDist(p, t):
     d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
 
     # else:
-
-        
-
     #     d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
@@ -703,10 +700,10 @@ def GetLight(p, t, hit, nor, step, rd):
 
 
     sceneCol = (getColor(hit)*(diff + 0.15) + ti.Vector([0.8, 0.8, 0.2])*spec*0.5) * atten
-    if (hit == CLOUD2):
-        print(getColor(hit)[0])
-        print(getColor(hit)[1])
-        print(getColor(hit)[2])
+    # if (hit == CLOUD2):
+    #     print(getColor(hit)[0])
+    #     print(getColor(hit)[1])
+    #     print(getColor(hit)[2])
     return sceneCol , n
 
 
@@ -893,8 +890,8 @@ def main():
         paint(frame * frameTime)
         
         gui.set_image(pixels)
-        # gui.show(f'{frame:04d}.png')
-        gui.show()
+        gui.show(f'{frame:04d}.png')
+        # gui.show()
 
 
 if __name__ == '__main__':
