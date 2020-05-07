@@ -91,7 +91,7 @@ class MPMSolver:
         if self.dim == 2:
             self.set_gravity((0, -9.8))
         else:
-            self.set_gravity((0, -7.8, 0))
+            self.set_gravity((0, -5, 0))
 
     def stencil_range(self):
         return ti.ndrange(*((3, ) * self.dim))
@@ -195,6 +195,10 @@ class MPMSolver:
                     c = ti.cos(t*0.3)
                     rot_mat = ti.Matrix([[c, -s], [s, c]])
 
+                    s_a = ti.sin(t*0.5)
+                    c_a = ti.cos(t*0.5)
+                    rot_mat_a = ti.Matrix([[c_a, -s_a], [s_a, c_a]])
+
                     s2 = ti.sin(0.7)
                     c2 = ti.cos(0.7)
                     rot_mat_static = ti.Matrix([[c2, -s2], [s2, c2]])
@@ -214,8 +218,8 @@ class MPMSolver:
                     box_position_a = ti.Vector([3.0,8.5,6])
 
                     box_position_vect_a = (grid_pos - box_position_a)
-                    rotated_x_a = rot_mat[0,0] * box_position_vect_a[0] + rot_mat[1,0] * box_position_vect_a[2] 
-                    rotated_z_a = rot_mat[0,1] * box_position_vect_a[0] + rot_mat[1,1] * box_position_vect_a[2] 
+                    rotated_x_a = rot_mat_a[0,0] * box_position_vect_a[0] + rot_mat_a[1,0] * box_position_vect_a[2] 
+                    rotated_z_a = rot_mat_a[0,1] * box_position_vect_a[0] + rot_mat_a[1,1] * box_position_vect_a[2] 
                     box_position_rotated_a = ti.Vector([rotated_x_a, box_position_vect_a[1], rotated_z_a])
                     #---------------------------------------------------
                     size_a = ti.Vector([0.5, 0.1, 0.1])

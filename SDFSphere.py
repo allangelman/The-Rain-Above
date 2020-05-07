@@ -74,7 +74,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 13, 5.8],
+mpm.add_cube(lower_corner=[1, 16, 5.8],
              cube_size=[8, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -246,11 +246,12 @@ def GetDist(p, t):
     capsuleDist2 = sdf_Capsule(p, ti.Vector([3.5,10,6]), ti.Vector([5.5,9,6]), 0.2)
     
     rot_mat = rotate(t*0.3)
+    rot_mat_a = rotate(t*0.5)
     rot_mat_static = rotate(0.7)
     # capsule_pos_rotated = rotate_axis_y(p, rot_mat)
 
     box_position_a = p - ti.Vector([2.5,8.5,6])
-    box_position_rotated_a = rotate_axis_y(box_position_a, rot_mat)
+    box_position_rotated_a = rotate_axis_y(box_position_a, rot_mat_a)
     boxDist_a1 = sdf_Box(box_position_rotated_a, ti.Vector([0.5, 0.1, 0.1]), 0.1)
     boxDist_a2 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.5, 0.1]), 0.1)
     boxDist_a3 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.1, 0.5]), 0.1)
@@ -695,7 +696,7 @@ def getColor(int_ob):
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0, 31, 1.0])
+    lightPos = ti.Vector([0, 35, 1.0])
 
     l = normalize(lightPos - p)
     n = ti.Vector([0.0, 0.0, 0.0])
