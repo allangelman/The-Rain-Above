@@ -211,17 +211,17 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 @ti.func
 def GetDistCloud(p, t):
     cloud = 0.0
-    cloud = clouds(p, 9.0, 2.5 - ti.sin(t*0.8)*0.1, -0.4, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud = clouds(p, 9.0, 2.8 - ti.sin(t*0.8)*0.1, -0.4, 0.7, 1.0, 1.25, 0.7, 0.4)
     return cloud
 @ti.func
 def GetDistCloud2(p, t):
     cloud = 0.0
-    cloud = clouds(p, 5.0, 2.7 + ti.sin(t)*0.1, -0.8, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud = clouds(p, 5.0, 3.0 + ti.sin(t)*0.1, -0.8, 0.7, 1.25, 0.9, 0.4, 0.2)
     return cloud
 @ti.func
 def GetDistCloud3(p, t):
     cloud = 0.0
-    cloud = clouds(p, 1.0, 2.2 + ti.cos(t*0.9)*0.1, -0.5, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = clouds(p, 1.0, 2.5 + ti.cos(t*0.9)*0.1, -0.5, 0.6, 0.7, 1.2, 0.9, 0.6)
     return cloud
 
 @ti.func
@@ -240,24 +240,31 @@ def GetDist(p, t):
     # capsuleDist2 = 0.0
     # if ti.static(debug): 
        
-    capsuleDist = sdf_Capsule(p, ti.Vector([7,9,6]), ti.Vector([9,10,6]), 0.2)
-    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,10,6]), ti.Vector([5,9,6]), 0.2)
+    capsuleDist = sdf_Capsule(p, ti.Vector([7,8,6]), ti.Vector([9,9,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,9,6]), ti.Vector([5,8,6]), 0.2)
     
-    rot_mat = rotate(t)
-    capsule_pos_rotated = rotate_axis_y(p, rot_mat)
-    capsuleDist3 = sdf_Capsule(capsule_pos_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6]), 0.1)
-    capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
-    capsuleDist5 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5]), 0.1)
+    rot_mat = rotate(t*0.5)
+    # capsule_pos_rotated = rotate_axis_y(p, rot_mat)
 
-    box_position = p - ti.Vector([6, 11, 6])
+    box_position_a = p - ti.Vector([2.0,8.5,6])
+    box_position_rotated_a = rotate_axis_y(box_position_a, rot_mat)
+    boxDist_a1 = sdf_Box(box_position_rotated_a, ti.Vector([0.5, 0.1, 0.1]), 0.1)
+    boxDist_a2 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.5, 0.1]), 0.1)
+    boxDist_a3 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.1, 0.5]), 0.1)
+
+    # capsuleDist3 = sdf_Capsule(capsule_pos_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6]), 0.1)
+    # capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
+    # capsuleDist5 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5]), 0.1)
+
+    box_position = p - ti.Vector([6, 10, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([6, 11, 6])
+    box_position2 = p - ti.Vector([6, 10, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
     boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
 
-    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, capsuleDist3, capsuleDist4, capsuleDist5)
+    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, boxDist_a1, boxDist_a2, boxDist_a3)
 
     # else:
     #     d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
@@ -677,7 +684,7 @@ def getColor(int_ob):
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0, 23, 1.0])
+    lightPos = ti.Vector([0, 26, 1.0])
 
     l = normalize(lightPos - p)
     n = ti.Vector([0.0, 0.0, 0.0])

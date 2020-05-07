@@ -184,27 +184,71 @@ class MPMSolver:
                     # if ((grid_pos - (capsule(grid_pos, ti.Vector([3,0,6]), ti.Vector([4,2,6])))).norm() - 0.2 < 0):
                     #     self.grid_v[I] = [0, 0, 0]
                     
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,9,6]), ti.Vector([9,10,6])))).norm() - 0.2 < 0):
+                    ###########################################
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,8,6]), ti.Vector([9,9,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,10,6]), ti.Vector([5,9,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,9,6]), ti.Vector([5,8,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
+                    ###############################################    
 
-                    s = ti.sin(t)
-                    c = ti.cos(t)
+                    s = ti.sin(t*0.5)
+                    c = ti.cos(t*0.5)
                     rot_mat = ti.Matrix([[c, -s], [s, c]])
                     
-                    rotated_x_cap = rot_mat[0,0] * grid_pos[0] + rot_mat[1,0] * grid_pos[2] 
-                    rotated_z_cap = rot_mat[0,1] * grid_pos[0] + rot_mat[1,1] * grid_pos[2] 
-                    capsule_position_rotated = ti.Vector([rotated_x_cap, grid_pos[1], rotated_z_cap])
+                    # rotated_x_cap = rot_mat[0,0] * grid_pos[0] + rot_mat[1,0] * grid_pos[2] 
+                    # rotated_z_cap = rot_mat[0,1] * grid_pos[0] + rot_mat[1,1] * grid_pos[2] 
+                    # capsule_position_rotated = ti.Vector([rotated_x_cap, grid_pos[1], rotated_z_cap])
 
-                    if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6])))).norm() - 0.1 < 0):
+                    # if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6])))).norm() - 0.1 < 0):
+                    #     self.grid_v[I] = [0, 0, 0]
+                    # if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6])))).norm() - 0.1 < 0):
+                    #     self.grid_v[I] = [0, 0, 0]
+                    # if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5])))).norm() - 0.1 < 0):
+                    #     self.grid_v[I] = [0, 0, 0] 
+                    # 
+                    ##################################################
+                    box_position_a = ti.Vector([2.0,8.5,6])
+
+                    box_position_vect_a = (grid_pos - box_position_a)
+                    rotated_x_a = rot_mat[0,0] * box_position_vect_a[0] + rot_mat[1,0] * box_position_vect_a[2] 
+                    rotated_z_a = rot_mat[0,1] * box_position_vect_a[0] + rot_mat[1,1] * box_position_vect_a[2] 
+                    box_position_rotated_a = ti.Vector([rotated_x_a, box_position_vect_a[1], rotated_z_a])
+                    #---------------------------------------------------
+                    size_a = ti.Vector([0.5, 0.1, 0.1])
+
+                    x_a = max(abs(box_position_rotated_a[0]) - size_a[0], 0.0)
+                    y_a = max(abs(box_position_rotated_a[1]) - size_a[1], 0.0)
+                    z_a = max(abs(box_position_rotated_a[2]) - size_a[2], 0.0)
+                    q_a = ti.Vector([x_a,y_a,z_a])
+                    qLength_a = ti.sqrt((q_a[0] * q_a[0]) + (q_a[1] * q_a[1]) + (q_a[2] * q_a[2]))
+
+                    if ((qLength_a + min(max(q_a[0],max(q_a[1],q_a[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6])))).norm() - 0.1 < 0):
+                    #---------------------------------------------------
+                    size_a2 = ti.Vector([0.1, 0.5, 0.1])
+
+                    x_a2 = max(abs(box_position_rotated_a[0]) - size_a2[0], 0.0)
+                    y_a2 = max(abs(box_position_rotated_a[1]) - size_a2[1], 0.0)
+                    z_a2 = max(abs(box_position_rotated_a[2]) - size_a2[2], 0.0)
+                    q_a2 = ti.Vector([x_a2,y_a2,z_a2])
+                    qLength_a2 = ti.sqrt((q_a2[0] * q_a2[0]) + (q_a2[1] * q_a2[1]) + (q_a2[2] * q_a2[2]))
+
+                    if ((qLength_a2 + min(max(q_a2[0],max(q_a2[1],q_a2[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5])))).norm() - 0.1 < 0):
-                        self.grid_v[I] = [0, 0, 0]                                        
-                    
-                    box_position = ti.Vector([6, 11, 6])
+                    #---------------------------------------------------
+                    size_a3 = ti.Vector([0.1, 0.1, 0.5])
+
+                    x_a3 = max(abs(box_position_rotated_a[0]) - size_a3[0], 0.0)
+                    y_a3 = max(abs(box_position_rotated_a[1]) - size_a3[1], 0.0)
+                    z_a3 = max(abs(box_position_rotated_a[2]) - size_a3[2], 0.0)
+                    q_a3 = ti.Vector([x_a3,y_a3,z_a3])
+                    qLength_a3 = ti.sqrt((q_a3[0] * q_a3[0]) + (q_a3[1] * q_a3[1]) + (q_a3[2] * q_a3[2]))
+
+                    if ((qLength_a3 + min(max(q_a3[0],max(q_a3[1],q_a3[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
+
+                    ##################################################
+                    box_position = ti.Vector([6, 10, 6])
 
                     box_position_vect = (grid_pos - box_position)
                     rotated_x = rot_mat[0,0] * box_position_vect[0] + rot_mat[1,0] * box_position_vect[1] 
@@ -232,7 +276,7 @@ class MPMSolver:
 
                     if ((qLength2 + min(max(q2[0],max(q2[1],q2[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
-                
+                    ##################################################################
 
     @ti.classkernel
     def g2p(self, dt: ti.f32):
