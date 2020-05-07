@@ -70,7 +70,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3.5, 9, 5.8],
+mpm.add_cube(lower_corner=[3.5, 12, 5.8],
              cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -233,29 +233,35 @@ def GetDist(p, t):
     intersection_object = 0
     # planeDist = p[1]
     planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/ti.sqrt(101.0), 10.0/ti.sqrt(101.0)]))
-    d = 0.0
-    capsuleDist =0.0
-    capsuleDist2 = 0.0
-    if ti.static(debug): 
+    # d = 0.0
+    # capsuleDist =0.0
+    # capsuleDist2 = 0.0
+    # if ti.static(debug): 
        
-        capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
-        capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
-        d = min(planeDist, capsuleDist)
-    else:
+    capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
+    
+    rot_mat = rotate(t)
+    # capsule_pos_rotated = rotate_axis_y(p, rot_mat)
+    # capsuleDist3 = sdf_Capsule(capsule_pos_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6]), 0.1)
+    # capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
+    # capsuleDist5 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5]), 0.1)
 
-        capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
-        capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
+    box_position = p - ti.Vector([6, 9, 6])
+    box_position_rotated = rotate_axis_z(box_position, rot_mat)
+    boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
+
+    box_position2 = p - ti.Vector([6, 9, 6])
+    box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
+    boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
+
+    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
+
+    # else:
+
         
-        rot_mat = rotate(t)
-        box_position = p - ti.Vector([6, 9, 6])
-        box_position_rotated = rotate_axis_z(box_position, rot_mat)
-        boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-        box_position2 = p - ti.Vector([6, 9, 6])
-        box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
-        boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
-
-        d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
+    #     d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
@@ -270,10 +276,10 @@ def GetDist(p, t):
     #   intersection_object = CLOUD3      
     elif d == capsuleDist:
       intersection_object = CAPSULE
-    # elif d == capsuleDist2:
-    #   intersection_object = CAPSULE2
-    # else:
-    #   intersection_object = WHEEL
+    elif d == capsuleDist2:
+      intersection_object = CAPSULE2
+    else:
+      intersection_object = WHEEL
     # print(cloud_intersection)
     
     return d, intersection_object
@@ -674,14 +680,14 @@ def getColor(int_ob):
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0, 8, 6.0])
+    lightPos = ti.Vector([0, 15, 1.0])
 
     l = normalize(lightPos - p)
     n = ti.Vector([0.0, 0.0, 0.0])
     if hit == PARTICLES: #particles
         n = nor
     else: #sphere or plane
-        n = GetNormal(p, step, hit)
+        n = GetNormal(p, t, hit)
     # attenuating the light
     atten = 1.0 / (1.0 + l*0.2 + l*l*0.1)
     spec = pow(max(ti.dot( reflect(-l, n), -rd ), 0.0), 8.0)
@@ -729,10 +735,10 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 9.0
+                starting_y = 12.0
                 ending_y = 5.0
                 motion_y = -t*2
-                lookat_starting_y = 9.0
+                lookat_starting_y = 12.0
                 lookat_ending_y = 5.0
                 # motion_y = 0
 
