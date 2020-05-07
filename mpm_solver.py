@@ -91,7 +91,7 @@ class MPMSolver:
         if self.dim == 2:
             self.set_gravity((0, -9.8))
         else:
-            self.set_gravity((0, -9.8, 0))
+            self.set_gravity((0, -7.8, 0))
 
     def stencil_range(self):
         return ti.ndrange(*((3, ) * self.dim))

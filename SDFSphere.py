@@ -75,7 +75,7 @@ def buffers():
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
 mpm.add_cube(lower_corner=[1, 13, 5.8],
-             cube_size=[8, 0.3, 0.3],
+             cube_size=[1, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -236,20 +236,20 @@ def planeSDF(p, n):
 def GetDist(p, t):
     intersection_object = 0
     # planeDist = p[1]
-    planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/ti.sqrt(37.0), 6.0/ti.sqrt(37.0)]))
+    planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/ti.sqrt(101.0), 10.0/ti.sqrt(101.0)]))
     # d = 0.0
     # capsuleDist =0.0
     # capsuleDist2 = 0.0
     # if ti.static(debug): 
        
     capsuleDist = sdf_Capsule(p, ti.Vector([8.5,8,6]), ti.Vector([10.5,9,6]), 0.2)
-    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,10,6]), ti.Vector([5,9,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([3.5,10,6]), ti.Vector([5.5,9,6]), 0.2)
     
     rot_mat = rotate(t*0.3)
     rot_mat_static = rotate(0.7)
     # capsule_pos_rotated = rotate_axis_y(p, rot_mat)
 
-    box_position_a = p - ti.Vector([3.0,8.5,6])
+    box_position_a = p - ti.Vector([2.5,8.5,6])
     box_position_rotated_a = rotate_axis_y(box_position_a, rot_mat)
     boxDist_a1 = sdf_Box(box_position_rotated_a, ti.Vector([0.5, 0.1, 0.1]), 0.1)
     boxDist_a2 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.5, 0.1]), 0.1)
