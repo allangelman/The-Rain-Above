@@ -169,10 +169,10 @@ class MPMSolver:
                 for d in ti.static(range(self.dim)):
                     #if each component of position is less than 3 and the velocity is less than 0
                     # if you uncomment this, but comment below, bottom particle conditions works
-                    if I[d] < 2 and self.grid_v[I][d] < 0 and t>1.0:
+                    if I[d] < 2 and self.grid_v[I][d] < 0 and t>2.0:
                         self.grid_v[I][d] = 0  # Boundary conditions
                     #if each component of position is greater than the outerbound minus 3 and the velocity is greater than 0
-                    if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0 and t>1.0:
+                    if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0 and t>2.0:
                         self.grid_v[I][d] = 0
 
                     grid_pos = self.dx * I
@@ -184,22 +184,27 @@ class MPMSolver:
                     # if ((grid_pos - (capsule(grid_pos, ti.Vector([3,0,6]), ti.Vector([4,2,6])))).norm() - 0.2 < 0):
                     #     self.grid_v[I] = [0, 0, 0]
                     
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,7,6]), ti.Vector([9,8,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,9,6]), ti.Vector([9,10,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,8,6]), ti.Vector([5,7,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,10,6]), ti.Vector([5,9,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
 
-                    # if ((grid_pos - (capsule(grid_pos, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6])))).norm() - 0.1 < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
-                    # if ((grid_pos - (capsule(grid_pos, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6])))).norm() - 0.1 < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
-                    # if ((grid_pos - (capsule(grid_pos, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5])))).norm() - 0.1 < 0):
-                    #     self.grid_v[I] = [0, 0, 0]                                        
-                    
-                    box_position = ti.Vector([6, 9, 6])
                     s = ti.sin(t)
                     c = ti.cos(t)
                     rot_mat = ti.Matrix([[c, -s], [s, c]])
+                    
+                    rotated_x_cap = rot_mat[0,0] * grid_pos[0] + rot_mat[1,0] * grid_pos[2] 
+                    rotated_z_cap = rot_mat[0,1] * grid_pos[0] + rot_mat[1,1] * grid_pos[2] 
+                    capsule_position_rotated = ti.Vector([rotated_x_cap, grid_pos[1], rotated_z_cap])
+
+                    if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6])))).norm() - 0.1 < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6])))).norm() - 0.1 < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    if ((grid_pos - (capsule(capsule_position_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5])))).norm() - 0.1 < 0):
+                        self.grid_v[I] = [0, 0, 0]                                        
+                    
+                    box_position = ti.Vector([6, 11, 6])
 
                     box_position_vect = (grid_pos - box_position)
                     rotated_x = rot_mat[0,0] * box_position_vect[0] + rot_mat[1,0] * box_position_vect[1] 

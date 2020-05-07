@@ -37,6 +37,7 @@ particle_color = ti.Vector([107/255, 115/255, 194/255])
 capsule_color = ti.Vector([234/255, 244/255, 100/255])
 capsule_color2 = ti.Vector([100/255, 189/255, 220/255])
 wheel_color = ti.Vector([50/255, 250/255, 170/255])
+asterick_color = ti.Vector([170/255, 50/255, 250/255])
 # cloud_intersection = 0
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
@@ -49,6 +50,7 @@ PARTICLES = 5
 CAPSULE = 6
 CAPSULE2 = 7
 WHEEL = 8
+ASTERICK = 9
 debug = True
 
 pid = ti.var(ti.i32)
@@ -70,7 +72,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3.5, 12, 5.8],
+mpm.add_cube(lower_corner=[1.5, 16, 5.8],
              cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -209,17 +211,17 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 @ti.func
 def GetDistCloud(p, t):
     cloud = 0.0
-    cloud = clouds(p, 9.0, 2.5 - ti.sin(t*4.0)*0.25, -0.4, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud = clouds(p, 9.0, 2.5 - ti.sin(t*0.8)*0.1, -0.4, 0.7, 1.0, 1.25, 0.7, 0.4)
     return cloud
 @ti.func
 def GetDistCloud2(p, t):
     cloud = 0.0
-    cloud = clouds(p, 5.0, 2.7 + ti.sin(t*4.0)*0.25, -0.8, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud = clouds(p, 5.0, 2.7 + ti.sin(t)*0.1, -0.8, 0.7, 1.25, 0.9, 0.4, 0.2)
     return cloud
 @ti.func
 def GetDistCloud3(p, t):
     cloud = 0.0
-    cloud = clouds(p, 1.0, 2.2 + ti.cos(t*3.0)*0.25, -0.5, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = clouds(p, 1.0, 2.2 + ti.cos(t*0.9)*0.1, -0.5, 0.6, 1.0, 1.1, 1.25, 0.6)
     return cloud
 
 @ti.func
@@ -238,24 +240,24 @@ def GetDist(p, t):
     # capsuleDist2 = 0.0
     # if ti.static(debug): 
        
-    capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
-    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
+    capsuleDist = sdf_Capsule(p, ti.Vector([7,9,6]), ti.Vector([9,10,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,10,6]), ti.Vector([5,9,6]), 0.2)
     
     rot_mat = rotate(t)
-    # capsule_pos_rotated = rotate_axis_y(p, rot_mat)
-    # capsuleDist3 = sdf_Capsule(capsule_pos_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6]), 0.1)
-    # capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
-    # capsuleDist5 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5]), 0.1)
+    capsule_pos_rotated = rotate_axis_y(p, rot_mat)
+    capsuleDist3 = sdf_Capsule(capsule_pos_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6]), 0.1)
+    capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
+    capsuleDist5 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5]), 0.1)
 
-    box_position = p - ti.Vector([6, 9, 6])
+    box_position = p - ti.Vector([6, 11, 6])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([6, 9, 6])
+    box_position2 = p - ti.Vector([6, 11, 6])
     box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
     boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
 
-    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
+    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, capsuleDist3, capsuleDist4, capsuleDist5)
 
     # else:
     #     d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
@@ -264,19 +266,15 @@ def GetDist(p, t):
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
 
     if d == planeDist:
-      intersection_object = PLANE
-    # elif d == cloud:
-    #   intersection_object = CLOUD
-    # elif d == cloud2:
-    #   intersection_object = CLOUD2
-    # elif d == cloud3:
-    #   intersection_object = CLOUD3      
+        intersection_object = PLANE    
     elif d == capsuleDist:
-      intersection_object = CAPSULE
+        intersection_object = CAPSULE
     elif d == capsuleDist2:
-      intersection_object = CAPSULE2
+        intersection_object = CAPSULE2
+    elif d == boxDist or d == boxDist2:
+        intersection_object = WHEEL
     else:
-      intersection_object = WHEEL
+        intersection_object = ASTERICK
     # print(cloud_intersection)
     
     return d, intersection_object
@@ -670,14 +668,16 @@ def getColor(int_ob):
         fin = capsule_color
     elif int_ob == CAPSULE2: #if it hit the capsule 2
         fin = capsule_color2
-    else: #if it hit the capsule 2
+    elif int_ob == WHEEL: #if it hit the capsule 2
         fin = wheel_color
+    else:
+        fin = asterick_color
     return fin
 
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0, 15, 1.0])
+    lightPos = ti.Vector([0, 23, 1.0])
 
     l = normalize(lightPos - p)
     n = ti.Vector([0.0, 0.0, 0.0])
@@ -732,10 +732,10 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 12.0
+                starting_y = 16.0
                 ending_y = 5.0
-                motion_y = -t*2
-                lookat_starting_y = 12.0
+                motion_y = -t
+                lookat_starting_y = 16.0
                 lookat_ending_y = 5.0
                 # motion_y = 0
 
