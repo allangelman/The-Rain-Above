@@ -187,12 +187,12 @@ class MPMSolver:
                     ###########################################
                     if ((grid_pos - (capsule(grid_pos, ti.Vector([7,8,6]), ti.Vector([9,9,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,9,6]), ti.Vector([5,8,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([2,10,6]), ti.Vector([4,9,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     ###############################################    
 
-                    s = ti.sin(t*0.5)
-                    c = ti.cos(t*0.5)
+                    s = ti.sin(t*0.3)
+                    c = ti.cos(t*0.3)
                     rot_mat = ti.Matrix([[c, -s], [s, c]])
                     
                     # rotated_x_cap = rot_mat[0,0] * grid_pos[0] + rot_mat[1,0] * grid_pos[2] 
@@ -207,7 +207,7 @@ class MPMSolver:
                     #     self.grid_v[I] = [0, 0, 0] 
                     # 
                     ##################################################
-                    box_position_a = ti.Vector([2.0,8.5,6])
+                    box_position_a = ti.Vector([3.0,8.5,6])
 
                     box_position_vect_a = (grid_pos - box_position_a)
                     rotated_x_a = rot_mat[0,0] * box_position_vect_a[0] + rot_mat[1,0] * box_position_vect_a[2] 
@@ -248,7 +248,7 @@ class MPMSolver:
                         self.grid_v[I] = [0, 0, 0]
 
                     ##################################################
-                    box_position = ti.Vector([6, 10, 6])
+                    box_position = ti.Vector([7, 11.5, 6])
 
                     box_position_vect = (grid_pos - box_position)
                     rotated_x = rot_mat[0,0] * box_position_vect[0] + rot_mat[1,0] * box_position_vect[1] 
@@ -275,6 +275,35 @@ class MPMSolver:
                     qLength2 = ti.sqrt((q2[0] * q2[0]) + (q2[1] * q2[1]) + (q2[2] * q2[2]))
 
                     if ((qLength2 + min(max(q2[0],max(q2[1],q2[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    ##################################################################
+                    box_position_two = ti.Vector([2.0,12.5,6])
+
+                    box_position_vect_two = (grid_pos - box_position_two)
+                    rotated_y_two = rot_mat[0,0] * box_position_vect_two[1] + rot_mat[1,0] * box_position_vect_two[2] 
+                    rotated_z_two = rot_mat[0,1] * box_position_vect_two[1] + rot_mat[1,1] * box_position_vect_two[2] 
+                    box_position_rotated_two = ti.Vector([box_position_vect_two[0], rotated_y_two, rotated_z_two])
+                    
+                    size_two = ti.Vector([1, 0.1, 1])
+
+                    x_two = max(abs(box_position_rotated_two[0]) - size_two[0], 0.0)
+                    y_two = max(abs(box_position_rotated_two[1]) - size_two[1], 0.0)
+                    z_two = max(abs(box_position_rotated_two[2]) - size_two[2], 0.0)
+                    q_two = ti.Vector([x_two,y_two,z_two])
+                    qLength_two = ti.sqrt((q_two[0] * q_two[0]) + (q_two[1] * q_two[1]) + (q_two[2] * q_two[2]))
+
+                    if ((qLength_two + min(max(q_two[0],max(q_two[1],q_two[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
+
+                    size2_two = ti.Vector([0.1, 1, 1])
+
+                    x_two2 = max(abs(box_position_rotated_two[0]) - size2_two[0], 0.0)
+                    y_two2 = max(abs(box_position_rotated_two[1]) - size2_two[1], 0.0)
+                    z_two2 = max(abs(box_position_rotated_two[2]) - size2_two[2], 0.0)
+                    q2_two2 = ti.Vector([x_two2,y_two2,z_two2])
+                    qLength2_two = ti.sqrt((q2_two2[0] * q2_two2[0]) + (q2_two2[1] * q2_two2[1]) + (q2_two2[2] * q2_two2[2]))
+
+                    if ((qLength2_two + min(max(q2_two2[0],max(q2_two2[1],q2_two2[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
                     ##################################################################
 
