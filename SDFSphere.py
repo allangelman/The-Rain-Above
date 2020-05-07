@@ -11,7 +11,7 @@ ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64, debug=False, print_ir=False)
 # ti.core.toggle_advanced_optimization(False)
 
-n = 15
+n = 10
 m = 20
 hit_sphere = 0
 pixels = ti.Vector(4, dt=ti.f32, shape=(n * 16, n*9))
@@ -70,7 +70,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3.5, 2.5, 5.8],
+mpm.add_cube(lower_corner=[3.5, 12, 5.8],
              cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -742,13 +742,13 @@ def paint(t: ti.f32):
     for i in range(n*16): #this is parallilized
         for j in range(n*9):
             for x in range(3):
-                uv = ti.Vector([((i / 240) - 0.5) * (2), (j / 135) - 0.5])
+                uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 1
-                ending_y = 1
-                motion_y = -t*4
-                lookat_starting_y = 1
-                lookat_ending_y = 1
+                starting_y = 12.0
+                ending_y = 1.0
+                motion_y = -t*2
+                lookat_starting_y = 12.0
+                lookat_ending_y = 1.0
                 # motion_y = 0
 
                 ro = ti.Vector([5.0, starting_y , 1.0])
@@ -779,14 +779,14 @@ def paint(t: ti.f32):
                     sdf_p = ro + rd * sdf
                     # putting in CAPSULE  so that it renders the background instead of the particles
                     sdf_light, normal_sdf = GetLight(sdf_p, t, sdf_inter, no, frameTimeBlur*x, rd)
-                    if (intersection_object == CAPSULE):
-                        rd2 = reflect(rd, normal)
-                        d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
+                    # if (intersection_object == CAPSULE):
+                    #     rd2 = reflect(rd, normal)
+                    #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
                 
-                        p += rd2*d2
+                    #     p += rd2*d2
                 
-                        light2, normal2 = GetLight(p, t, intersection_object2, no2, frameTimeBlur*x, rd2)
-                        sdf_light += light2*0.30
+                    #     light2, normal2 = GetLight(p, t, intersection_object2, no2, frameTimeBlur*x, rd2)
+                    #     sdf_light += light2*0.30
 
                     pixels[i, j] = ti.Vector([sdf_light[0], sdf_light[1], sdf_light[2], 1.0]) #color
                 alpha = 0.8
@@ -802,22 +802,22 @@ def paint(t: ti.f32):
                     if x == 2:
                         pixels[i, j] = pixels[i, j]*alpha2 + ti.Vector([light[0]*0.9, light[1]*0.9, light[2]*0.9, 1.0/(1-alpha2)])*(1-alpha2)
                 
-                alpha4 = 0.5
-                if x == 2:
-                # if cloud_intersection == 1:
-                #     p_cloud = ro + rd * clouddO
-                #     light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-                #     light += light_cloud*0.30
-                # if cloud_intersection3 == 1:
-                #     p_cloud3 = ro + rd * clouddO3
-                #     light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
-                #     light += light_cloud3*0.30
-                    if cloud_intersection2 == 1:
-                        p_cloud2 = ro + rd * clouddO2
-                        light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
-                        # light += light_cloud2*0.30
-                        # pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
-                        pixels[i, j] = ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0])
+                # alpha4 = 0.5
+                # if x == 2:
+                    # if cloud_intersection == 1:
+                    #     p_cloud = ro + rd * clouddO
+                    #     light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+                    #     light += light_cloud*0.30
+                    # if cloud_intersection3 == 1:
+                    #     p_cloud3 = ro + rd * clouddO3
+                    #     light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
+                    #     light += light_cloud3*0.30
+                    # if cloud_intersection2 == 1:
+                    #     p_cloud2 = ro + rd * clouddO2
+                    #     light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
+                    #     # light += light_cloud2*0.30
+                    #     # pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
+                    #     pixels[i, j] = ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0])
                 # rd2 = reflect(rd, normal)
                 # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
                 #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
