@@ -70,7 +70,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3.5, 4, 5.8],
+mpm.add_cube(lower_corner=[3.5, 5, 5.8],
              cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -744,11 +744,11 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 4.0
-                ending_y = 3.0
+                starting_y = 5.0
+                ending_y = 4.0
                 motion_y = -t*2
-                lookat_starting_y = 4.0
-                lookat_ending_y = 3.0
+                lookat_starting_y = 5.0
+                lookat_ending_y = 4.0
                 # motion_y = 0
 
                 ro = ti.Vector([5.0, starting_y , 1.0])
@@ -804,14 +804,16 @@ def paint(t: ti.f32):
                 
                 # alpha4 = 0.5
                 if x == 2:
-                    # if cloud_intersection == 1:
-                    #     p_cloud = ro + rd * clouddO
-                    #     light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-                    #     light += light_cloud*0.30
-                    # if cloud_intersection3 == 1:
-                    #     p_cloud3 = ro + rd * clouddO3
-                    #     light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
-                    #     light += light_cloud3*0.30
+                    if cloud_intersection == 1:
+                        p_cloud = ro + rd * clouddO
+                        light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+                        # light += light_cloud*0.30
+                        pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud[0]*0.30, light_cloud[1]*0.30, light_cloud[2]*0.30, 1.0])
+                    if cloud_intersection3 == 1:
+                        p_cloud3 = ro + rd * clouddO3
+                        light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
+                        # light += light_cloud3*0.30
+                        pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud3[0]*0.30, light_cloud3[1]*0.30, light_cloud3[2]*0.30, 1.0])
                     if cloud_intersection2 == 1:
                         p_cloud2 = ro + rd * clouddO2
                         light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
