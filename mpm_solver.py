@@ -222,7 +222,7 @@ class MPMSolver:
                     rotated_z_a = rot_mat_a[0,1] * box_position_vect_a[0] + rot_mat_a[1,1] * box_position_vect_a[2] 
                     box_position_rotated_a = ti.Vector([rotated_x_a, box_position_vect_a[1], rotated_z_a])
                     #---------------------------------------------------
-                    size_a = ti.Vector([0.5, 0.1, 0.1])
+                    size_a = ti.Vector([0.7, 0.2, 0.2])
 
                     x_a = max(abs(box_position_rotated_a[0]) - size_a[0], 0.0)
                     y_a = max(abs(box_position_rotated_a[1]) - size_a[1], 0.0)
@@ -233,7 +233,7 @@ class MPMSolver:
                     if ((qLength_a + min(max(q_a[0],max(q_a[1],q_a[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
                     #---------------------------------------------------
-                    size_a2 = ti.Vector([0.1, 0.5, 0.1])
+                    size_a2 = ti.Vector([0.2, 0.7, 0.2])
 
                     x_a2 = max(abs(box_position_rotated_a[0]) - size_a2[0], 0.0)
                     y_a2 = max(abs(box_position_rotated_a[1]) - size_a2[1], 0.0)
@@ -244,7 +244,7 @@ class MPMSolver:
                     if ((qLength_a2 + min(max(q_a2[0],max(q_a2[1],q_a2[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
                     #---------------------------------------------------
-                    size_a3 = ti.Vector([0.1, 0.1, 0.5])
+                    size_a3 = ti.Vector([0.2, 0.2, 0.7])
 
                     x_a3 = max(abs(box_position_rotated_a[0]) - size_a3[0], 0.0)
                     y_a3 = max(abs(box_position_rotated_a[1]) - size_a3[1], 0.0)
@@ -296,7 +296,7 @@ class MPMSolver:
                     rotated_z_two_static = rot_mat_static[0,1] * box_position_rotated_two[1] + rot_mat_static[1,1] * box_position_rotated_two[2] 
                     box_position_rotated_two_static = ti.Vector([box_position_vect_two[0], rotated_y_two_static, rotated_z_two_static])
                     
-                    size_two = ti.Vector([1, 0.1, 1])
+                    size_two = ti.Vector([0.3, 0.1, 1])
 
                     x_two = max(abs(box_position_rotated_two_static[0]) - size_two[0], 0.0)
                     y_two = max(abs(box_position_rotated_two_static[1]) - size_two[1], 0.0)
@@ -307,7 +307,7 @@ class MPMSolver:
                     if ((qLength_two + min(max(q_two[0],max(q_two[1],q_two[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
 
-                    size2_two = ti.Vector([0.1, 1, 1])
+                    size2_two = ti.Vector([0.3, 1, 0.1])
 
                     x_two2 = max(abs(box_position_rotated_two_static[0]) - size2_two[0], 0.0)
                     y_two2 = max(abs(box_position_rotated_two_static[1]) - size2_two[1], 0.0)
