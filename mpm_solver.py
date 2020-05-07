@@ -169,10 +169,10 @@ class MPMSolver:
                 for d in ti.static(range(self.dim)):
                     #if each component of position is less than 3 and the velocity is less than 0
                     # if you uncomment this, but comment below, bottom particle conditions works
-                    if I[d] < 2 and self.grid_v[I][d] < 0 and t>2.0:
+                    if I[d] < 2 and self.grid_v[I][d] < 0 and t>0.1:
                         self.grid_v[I][d] = 0  # Boundary conditions
                     #if each component of position is greater than the outerbound minus 3 and the velocity is greater than 0
-                    if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0 and t>2.0:
+                    if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0 and t>0.1:
                         self.grid_v[I][d] = 0
 
                     grid_pos = self.dx * I
