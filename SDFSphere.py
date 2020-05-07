@@ -9,9 +9,9 @@ from renderer_utils import out_dir, ray_aabb_intersection, inf, eps, \
 
 ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64, debug=False, print_ir=False)
-ti.core.toggle_advanced_optimization(False)
+# ti.core.toggle_advanced_optimization(False)
 
-n = 40
+n = 15
 m = 20
 hit_sphere = 0
 pixels = ti.Vector(4, dt=ti.f32, shape=(n * 16, n*9))
@@ -30,7 +30,7 @@ distanceFactor = 1.0
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
 cloud_color = ti.Vector([100/255, 244/255, 255/255])
-cloud_color2 = ti.Vector([210/255, 250/255, 245/255])
+cloud_color2 = ti.Vector([209/255, 250/255, 10/255])
 cloud_color3 = ti.Vector([225/255, 255/255, 235/255])
 plane_color = ti.Vector([210/255, 230/255, 249/255])
 particle_color = ti.Vector([107/255, 115/255, 194/255])
@@ -712,7 +712,10 @@ def GetLight(p, t, hit, nor, step, rd):
 
 
     sceneCol = (getColor(hit)*(diff + 0.15) + ti.Vector([0.8, 0.8, 0.2])*spec*0.5) * atten
-    
+    if (hit == CLOUD2):
+        print(getColor(hit)[0])
+        print(getColor(hit)[1])
+        print(getColor(hit)[2])
     return sceneCol , n
 
 
@@ -739,7 +742,7 @@ def paint(t: ti.f32):
     for i in range(n*16): #this is parallilized
         for j in range(n*9):
             for x in range(3):
-                uv = ti.Vector([((i / 640) - 0.5) * (2), (j / 360) - 0.5])
+                uv = ti.Vector([((i / 240) - 0.5) * (2), (j / 135) - 0.5])
                 
                 starting_y = 1
                 ending_y = 1
@@ -813,8 +816,8 @@ def paint(t: ti.f32):
                         p_cloud2 = ro + rd * clouddO2
                         light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
                         # light += light_cloud2*0.30
-                        pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
-
+                        # pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
+                        pixels[i, j] = ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0])
                 # rd2 = reflect(rd, normal)
                 # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
                 #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
