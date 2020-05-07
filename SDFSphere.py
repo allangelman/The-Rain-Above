@@ -39,6 +39,8 @@ capsule_color2 = ti.Vector([100/255, 189/255, 220/255])
 wheel_color = ti.Vector([50/255, 250/255, 170/255])
 wheel2_color = ti.Vector([70/255, 130/255, 217/255])
 asterick_color = ti.Vector([170/255, 50/255, 250/255])
+sphere1_color = ti.Vector([190/255, 70/255, 240/255])
+sphere2_color = ti.Vector([160/255, 230/255, 15/255])
 # cloud_intersection = 0
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
@@ -53,6 +55,8 @@ CAPSULE2 = 7
 WHEEL = 8
 ASTERICK = 9
 WHEEL2 = 10
+SPHERE1 = 11
+SPHERE2 = 12
 debug = True
 
 pid = ti.var(ti.i32)
@@ -241,6 +245,14 @@ def GetDist(p, t):
     # capsuleDist =0.0
     # capsuleDist2 = 0.0
     # if ti.static(debug): 
+
+    s0 = ti.Vector([3.5, 11.5, 7.0, 1.5**0.5])
+    s0_d = p - xyz(s0)
+    sphereDist0 = length(s0_d) - s0[3]
+
+    s1 = ti.Vector([11.3,8.6,6.5, 0.75**0.5])
+    s1_d = p - xyz(s1)
+    sphereDist1 = length(s1_d) - s1[3]
        
     capsuleDist = sdf_Capsule(p, ti.Vector([8.5,8,6]), ti.Vector([10.5,9,6]), 0.2)
     capsuleDist2 = sdf_Capsule(p, ti.Vector([3.5,10,6]), ti.Vector([5.5,9,6]), 0.2)
@@ -252,9 +264,9 @@ def GetDist(p, t):
 
     box_position_a = p - ti.Vector([2.5,8.5,6.0])
     box_position_rotated_a = rotate_axis_y(box_position_a, rot_mat_a)
-    boxDist_a1 = sdf_Box(box_position_rotated_a, ti.Vector([0.7, 0.2, 0.2]), 0.1)
-    boxDist_a2 = sdf_Box(box_position_rotated_a, ti.Vector([0.2, 0.7, 0.2]), 0.1)
-    boxDist_a3 = sdf_Box(box_position_rotated_a, ti.Vector([0.2, 0.2, 0.7]), 0.1)
+    boxDist_a1 = sdf_Box(box_position_rotated_a, ti.Vector([0.7, 0.1, 0.1]), 0.1)
+    boxDist_a2 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.7, 0.1]), 0.1)
+    boxDist_a3 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.1, 0.7]), 0.1)
 
     # capsuleDist3 = sdf_Capsule(capsule_pos_rotated, ti.Vector([1.5,7.5,6]), ti.Vector([2.5,7.5,6]), 0.1)
     # capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
@@ -268,10 +280,10 @@ def GetDist(p, t):
     box_position2 = p - ti.Vector([2.0,12.0,6.0])
     box_position_rotated2 = rotate_axis_x(box_position2, rot_mat)
     box_position_rotated2_static = rotate_axis_y(box_position_rotated2, rot_mat_static)
-    boxDist3 = sdf_Box(box_position_rotated2_static, ti.Vector([0.3, 0.1, 1]), 0.1)
-    boxDist4 = sdf_Box(box_position_rotated2_static, ti.Vector([0.3, 1, 0.1]), 0.1)
+    boxDist3 = sdf_Box(box_position_rotated2, ti.Vector([0.3, 0.1, 1]), 0.1)
+    boxDist4 = sdf_Box(box_position_rotated2, ti.Vector([0.3, 1, 0.1]), 0.1)
 
-    d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, boxDist_a1, boxDist_a2, boxDist_a3, boxDist3, boxDist4)
+    d = min(planeDist, sphereDist0, sphereDist1, capsuleDist, capsuleDist2, boxDist, boxDist2, boxDist_a1, boxDist_a2, boxDist_a3, boxDist3, boxDist4)
 
     # else:
     #     d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
@@ -285,6 +297,10 @@ def GetDist(p, t):
         intersection_object = CAPSULE
     elif d == capsuleDist2:
         intersection_object = CAPSULE2
+    elif d == sphereDist0:
+        intersection_object = SPHERE1
+    elif d == sphereDist1:
+        intersection_object = SPHERE2
     elif d == boxDist or d == boxDist2:
         intersection_object = WHEEL
     elif d == boxDist3 or d == boxDist4:
@@ -689,6 +705,10 @@ def getColor(int_ob):
         fin = wheel_color
     elif int_ob == WHEEL2:
         fin = wheel2_color
+    elif int_ob == SPHERE1:
+        fin = sphere1_color
+    elif int_ob == SPHERE2:
+        fin = sphere2_color
     else:
         fin = asterick_color
     return fin
@@ -751,10 +771,10 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 12.0
+                starting_y = 16.0
                 ending_y = 5.0
                 motion_y = -t
-                lookat_starting_y = 12.0
+                lookat_starting_y = 16.0
                 lookat_ending_y = 5.0
                 # motion_y = 0
 
