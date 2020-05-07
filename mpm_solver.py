@@ -185,9 +185,9 @@ class MPMSolver:
                     #     self.grid_v[I] = [0, 0, 0]
                     
                     ###########################################
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,8,6]), ti.Vector([9,9,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([8.5,8,6]), ti.Vector([10.5,9,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - (capsule(grid_pos, ti.Vector([2,10,6]), ti.Vector([4,9,6])))).norm() - 0.2 < 0):
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,10,6]), ti.Vector([5,9,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     ###############################################    
 
@@ -195,8 +195,8 @@ class MPMSolver:
                     c = ti.cos(t*0.3)
                     rot_mat = ti.Matrix([[c, -s], [s, c]])
 
-                    s2 = ti.sin(0.5)
-                    c2 = ti.cos(0.5)
+                    s2 = ti.sin(0.7)
+                    c2 = ti.cos(0.7)
                     rot_mat_static = ti.Matrix([[c2, -s2], [s2, c2]])
                     
                     # rotated_x_cap = rot_mat[0,0] * grid_pos[0] + rot_mat[1,0] * grid_pos[2] 
@@ -281,7 +281,7 @@ class MPMSolver:
                     if ((qLength2 + min(max(q2[0],max(q2[1],q2[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
                     ##################################################################
-                    box_position_two = ti.Vector([2.0,12.5,6])
+                    box_position_two = ti.Vector([2.0,12,6])
 
                     box_position_vect_two = (grid_pos - box_position_two)
                     rotated_y_two = rot_mat[0,0] * box_position_vect_two[1] + rot_mat[1,0] * box_position_vect_two[2] 

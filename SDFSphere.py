@@ -74,8 +74,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[5, 12, 5.8],
-             cube_size=[1, 0.5, 0.5],
+mpm.add_cube(lower_corner=[1, 13, 5.8],
+             cube_size=[8, 0.3, 0.3],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -223,7 +223,7 @@ def GetDistCloud2(p, t):
 @ti.func
 def GetDistCloud3(p, t):
     cloud = 0.0
-    cloud = clouds(p, 1.0, 2.6 + ti.cos(t*0.9)*0.1, -0.5, 0.6, 0.65, 1.35, 0.9, 0.6)
+    cloud = clouds(p, 1.0, 2.6 + ti.cos(t*0.9)*0.1, -0.5, 0.6, 0.55, 1.35, 0.9, 0.6)
     return cloud
 
 @ti.func
@@ -242,11 +242,11 @@ def GetDist(p, t):
     # capsuleDist2 = 0.0
     # if ti.static(debug): 
        
-    capsuleDist = sdf_Capsule(p, ti.Vector([7,8,6]), ti.Vector([9,9,6]), 0.2)
-    capsuleDist2 = sdf_Capsule(p, ti.Vector([2,10,6]), ti.Vector([4,9,6]), 0.2)
+    capsuleDist = sdf_Capsule(p, ti.Vector([8.5,8,6]), ti.Vector([10.5,9,6]), 0.2)
+    capsuleDist2 = sdf_Capsule(p, ti.Vector([3,10,6]), ti.Vector([5,9,6]), 0.2)
     
     rot_mat = rotate(t*0.3)
-    rot_mat_static = rotate(0.5)
+    rot_mat_static = rotate(0.7)
     # capsule_pos_rotated = rotate_axis_y(p, rot_mat)
 
     box_position_a = p - ti.Vector([3.0,8.5,6])
@@ -264,7 +264,7 @@ def GetDist(p, t):
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
     boxDist2 = sdf_Box(box_position_rotated, ti.Vector([0.1, 1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([2.0,11.5,6])
+    box_position2 = p - ti.Vector([2.0,12,6])
     box_position_rotated2 = rotate_axis_x(box_position2, rot_mat)
     box_position_rotated2_static = rotate_axis_y(box_position_rotated2, rot_mat_static)
     boxDist3 = sdf_Box(box_position_rotated2_static, ti.Vector([0.3, 0.1, 1]), 0.1)
@@ -695,7 +695,7 @@ def getColor(int_ob):
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0, 26, 1.0])
+    lightPos = ti.Vector([0, 27.5, 1.0])
 
     l = normalize(lightPos - p)
     n = ti.Vector([0.0, 0.0, 0.0])
@@ -750,10 +750,10 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 16.0
+                starting_y = 17.5
                 ending_y = 5.0
                 motion_y = -t
-                lookat_starting_y = 16.0
+                lookat_starting_y = 17.5
                 lookat_ending_y = 5.0
                 # motion_y = 0
 
