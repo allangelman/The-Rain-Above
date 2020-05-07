@@ -169,10 +169,10 @@ class MPMSolver:
                 for d in ti.static(range(self.dim)):
                     #if each component of position is less than 3 and the velocity is less than 0
                     # if you uncomment this, but comment below, bottom particle conditions works
-                    if I[d] < 2 and self.grid_v[I][d] < 0 and t>0.1:
+                    if I[d] < 2 and self.grid_v[I][d] < 0:
                         self.grid_v[I][d] = 0  # Boundary conditions
                     #if each component of position is greater than the outerbound minus 3 and the velocity is greater than 0
-                    if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0 and t>0.1:
+                    if I[d] > self.res[d] - 3 and self.grid_v[I][d] > 0:
                         self.grid_v[I][d] = 0
 
                     grid_pos = self.dx * I
@@ -195,13 +195,13 @@ class MPMSolver:
                     c = ti.cos(t*0.3)
                     rot_mat = ti.Matrix([[c, -s], [s, c]])
 
-                    # s_a = ti.sin(t*0.5)
-                    # c_a = ti.cos(t*0.5)
-                    # rot_mat_a = ti.Matrix([[c_a, -s_a], [s_a, c_a]])
+                    s_a = ti.sin(t*0.5)
+                    c_a = ti.cos(t*0.5)
+                    rot_mat_a = ti.Matrix([[c_a, -s_a], [s_a, c_a]])
 
-                    # s2 = ti.sin(0.7)
-                    # c2 = ti.cos(0.7)
-                    # rot_mat_static = ti.Matrix([[c2, -s2], [s2, c2]])
+                    s2 = ti.sin(0.7)
+                    c2 = ti.cos(0.7)
+                    rot_mat_static = ti.Matrix([[c2, -s2], [s2, c2]])
                     
                     # rotated_x_cap = rot_mat[0,0] * grid_pos[0] + rot_mat[1,0] * grid_pos[2] 
                     # rotated_z_cap = rot_mat[0,1] * grid_pos[0] + rot_mat[1,1] * grid_pos[2] 
@@ -215,48 +215,48 @@ class MPMSolver:
                     #     self.grid_v[I] = [0, 0, 0] 
                     # 
                     ##################################################
-                    # box_position_a = ti.Vector([2.5,8.5,6])
+                    box_position_a = ti.Vector([2.5,8.5,6])
 
-                    # box_position_vect_a = (grid_pos - box_position_a)
-                    # rotated_x_a = rot_mat_a[0,0] * box_position_vect_a[0] + rot_mat_a[1,0] * box_position_vect_a[2] 
-                    # rotated_z_a = rot_mat_a[0,1] * box_position_vect_a[0] + rot_mat_a[1,1] * box_position_vect_a[2] 
-                    # box_position_rotated_a = ti.Vector([rotated_x_a, box_position_vect_a[1], rotated_z_a])
-                    # #---------------------------------------------------
-                    # size_a = ti.Vector([0.5, 0.1, 0.1])
+                    box_position_vect_a = (grid_pos - box_position_a)
+                    rotated_x_a = rot_mat_a[0,0] * box_position_vect_a[0] + rot_mat_a[1,0] * box_position_vect_a[2] 
+                    rotated_z_a = rot_mat_a[0,1] * box_position_vect_a[0] + rot_mat_a[1,1] * box_position_vect_a[2] 
+                    box_position_rotated_a = ti.Vector([rotated_x_a, box_position_vect_a[1], rotated_z_a])
+                    #---------------------------------------------------
+                    size_a = ti.Vector([0.5, 0.1, 0.1])
 
-                    # x_a = max(abs(box_position_rotated_a[0]) - size_a[0], 0.0)
-                    # y_a = max(abs(box_position_rotated_a[1]) - size_a[1], 0.0)
-                    # z_a = max(abs(box_position_rotated_a[2]) - size_a[2], 0.0)
-                    # q_a = ti.Vector([x_a,y_a,z_a])
-                    # qLength_a = ti.sqrt((q_a[0] * q_a[0]) + (q_a[1] * q_a[1]) + (q_a[2] * q_a[2]))
+                    x_a = max(abs(box_position_rotated_a[0]) - size_a[0], 0.0)
+                    y_a = max(abs(box_position_rotated_a[1]) - size_a[1], 0.0)
+                    z_a = max(abs(box_position_rotated_a[2]) - size_a[2], 0.0)
+                    q_a = ti.Vector([x_a,y_a,z_a])
+                    qLength_a = ti.sqrt((q_a[0] * q_a[0]) + (q_a[1] * q_a[1]) + (q_a[2] * q_a[2]))
 
-                    # if ((qLength_a + min(max(q_a[0],max(q_a[1],q_a[2])),0.0) - 0.1) < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
-                    # #---------------------------------------------------
-                    # size_a2 = ti.Vector([0.1, 0.5, 0.1])
+                    if ((qLength_a + min(max(q_a[0],max(q_a[1],q_a[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    #---------------------------------------------------
+                    size_a2 = ti.Vector([0.1, 0.5, 0.1])
 
-                    # x_a2 = max(abs(box_position_rotated_a[0]) - size_a2[0], 0.0)
-                    # y_a2 = max(abs(box_position_rotated_a[1]) - size_a2[1], 0.0)
-                    # z_a2 = max(abs(box_position_rotated_a[2]) - size_a2[2], 0.0)
-                    # q_a2 = ti.Vector([x_a2,y_a2,z_a2])
-                    # qLength_a2 = ti.sqrt((q_a2[0] * q_a2[0]) + (q_a2[1] * q_a2[1]) + (q_a2[2] * q_a2[2]))
+                    x_a2 = max(abs(box_position_rotated_a[0]) - size_a2[0], 0.0)
+                    y_a2 = max(abs(box_position_rotated_a[1]) - size_a2[1], 0.0)
+                    z_a2 = max(abs(box_position_rotated_a[2]) - size_a2[2], 0.0)
+                    q_a2 = ti.Vector([x_a2,y_a2,z_a2])
+                    qLength_a2 = ti.sqrt((q_a2[0] * q_a2[0]) + (q_a2[1] * q_a2[1]) + (q_a2[2] * q_a2[2]))
 
-                    # if ((qLength_a2 + min(max(q_a2[0],max(q_a2[1],q_a2[2])),0.0) - 0.1) < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
-                    # #---------------------------------------------------
-                    # size_a3 = ti.Vector([0.1, 0.1, 0.5])
+                    if ((qLength_a2 + min(max(q_a2[0],max(q_a2[1],q_a2[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    #---------------------------------------------------
+                    size_a3 = ti.Vector([0.1, 0.1, 0.5])
 
-                    # x_a3 = max(abs(box_position_rotated_a[0]) - size_a3[0], 0.0)
-                    # y_a3 = max(abs(box_position_rotated_a[1]) - size_a3[1], 0.0)
-                    # z_a3 = max(abs(box_position_rotated_a[2]) - size_a3[2], 0.0)
-                    # q_a3 = ti.Vector([x_a3,y_a3,z_a3])
-                    # qLength_a3 = ti.sqrt((q_a3[0] * q_a3[0]) + (q_a3[1] * q_a3[1]) + (q_a3[2] * q_a3[2]))
+                    x_a3 = max(abs(box_position_rotated_a[0]) - size_a3[0], 0.0)
+                    y_a3 = max(abs(box_position_rotated_a[1]) - size_a3[1], 0.0)
+                    z_a3 = max(abs(box_position_rotated_a[2]) - size_a3[2], 0.0)
+                    q_a3 = ti.Vector([x_a3,y_a3,z_a3])
+                    qLength_a3 = ti.sqrt((q_a3[0] * q_a3[0]) + (q_a3[1] * q_a3[1]) + (q_a3[2] * q_a3[2]))
 
-                    # if ((qLength_a3 + min(max(q_a3[0],max(q_a3[1],q_a3[2])),0.0) - 0.1) < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
+                    if ((qLength_a3 + min(max(q_a3[0],max(q_a3[1],q_a3[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
 
                     ##################################################
-                    box_position = ti.Vector([7.0, 8.0, 6.0])
+                    box_position = ti.Vector([7.0, 11.0, 6.0])
 
                     box_position_vect = (grid_pos - box_position)
                     rotated_x = rot_mat[0,0] * box_position_vect[0] + rot_mat[1,0] * box_position_vect[1] 
@@ -285,38 +285,38 @@ class MPMSolver:
                     if ((qLength2 + min(max(q2[0],max(q2[1],q2[2])),0.0) - 0.1) < 0):
                         self.grid_v[I] = [0, 0, 0]
                     ##################################################################
-                    # box_position_two = ti.Vector([2.0,12.0,6.0])
+                    box_position_two = ti.Vector([2.0,12.0,6.0])
 
-                    # box_position_vect_two = (grid_pos - box_position_two)
-                    # rotated_y_two = rot_mat[0,0] * box_position_vect_two[1] + rot_mat[1,0] * box_position_vect_two[2] 
-                    # rotated_z_two = rot_mat[0,1] * box_position_vect_two[1] + rot_mat[1,1] * box_position_vect_two[2] 
-                    # box_position_rotated_two = ti.Vector([box_position_vect_two[0], rotated_y_two, rotated_z_two])
+                    box_position_vect_two = (grid_pos - box_position_two)
+                    rotated_y_two = rot_mat[0,0] * box_position_vect_two[1] + rot_mat[1,0] * box_position_vect_two[2] 
+                    rotated_z_two = rot_mat[0,1] * box_position_vect_two[1] + rot_mat[1,1] * box_position_vect_two[2] 
+                    box_position_rotated_two = ti.Vector([box_position_vect_two[0], rotated_y_two, rotated_z_two])
                     
-                    # rotated_y_two_static = rot_mat_static[0,0] * box_position_rotated_two[1] + rot_mat_static[1,0] * box_position_rotated_two[2] 
-                    # rotated_z_two_static = rot_mat_static[0,1] * box_position_rotated_two[1] + rot_mat_static[1,1] * box_position_rotated_two[2] 
-                    # box_position_rotated_two_static = ti.Vector([box_position_vect_two[0], rotated_y_two_static, rotated_z_two_static])
+                    rotated_y_two_static = rot_mat_static[0,0] * box_position_rotated_two[1] + rot_mat_static[1,0] * box_position_rotated_two[2] 
+                    rotated_z_two_static = rot_mat_static[0,1] * box_position_rotated_two[1] + rot_mat_static[1,1] * box_position_rotated_two[2] 
+                    box_position_rotated_two_static = ti.Vector([box_position_vect_two[0], rotated_y_two_static, rotated_z_two_static])
                     
-                    # size_two = ti.Vector([1, 0.1, 1])
+                    size_two = ti.Vector([1, 0.1, 1])
 
-                    # x_two = max(abs(box_position_rotated_two_static[0]) - size_two[0], 0.0)
-                    # y_two = max(abs(box_position_rotated_two_static[1]) - size_two[1], 0.0)
-                    # z_two = max(abs(box_position_rotated_two_static[2]) - size_two[2], 0.0)
-                    # q_two = ti.Vector([x_two,y_two,z_two])
-                    # qLength_two = ti.sqrt((q_two[0] * q_two[0]) + (q_two[1] * q_two[1]) + (q_two[2] * q_two[2]))
+                    x_two = max(abs(box_position_rotated_two_static[0]) - size_two[0], 0.0)
+                    y_two = max(abs(box_position_rotated_two_static[1]) - size_two[1], 0.0)
+                    z_two = max(abs(box_position_rotated_two_static[2]) - size_two[2], 0.0)
+                    q_two = ti.Vector([x_two,y_two,z_two])
+                    qLength_two = ti.sqrt((q_two[0] * q_two[0]) + (q_two[1] * q_two[1]) + (q_two[2] * q_two[2]))
 
-                    # if ((qLength_two + min(max(q_two[0],max(q_two[1],q_two[2])),0.0) - 0.1) < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
+                    if ((qLength_two + min(max(q_two[0],max(q_two[1],q_two[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
 
-                    # size2_two = ti.Vector([0.1, 1, 1])
+                    size2_two = ti.Vector([0.1, 1, 1])
 
-                    # x_two2 = max(abs(box_position_rotated_two_static[0]) - size2_two[0], 0.0)
-                    # y_two2 = max(abs(box_position_rotated_two_static[1]) - size2_two[1], 0.0)
-                    # z_two2 = max(abs(box_position_rotated_two_static[2]) - size2_two[2], 0.0)
-                    # q2_two2 = ti.Vector([x_two2,y_two2,z_two2])
-                    # qLength2_two = ti.sqrt((q2_two2[0] * q2_two2[0]) + (q2_two2[1] * q2_two2[1]) + (q2_two2[2] * q2_two2[2]))
+                    x_two2 = max(abs(box_position_rotated_two_static[0]) - size2_two[0], 0.0)
+                    y_two2 = max(abs(box_position_rotated_two_static[1]) - size2_two[1], 0.0)
+                    z_two2 = max(abs(box_position_rotated_two_static[2]) - size2_two[2], 0.0)
+                    q2_two2 = ti.Vector([x_two2,y_two2,z_two2])
+                    qLength2_two = ti.sqrt((q2_two2[0] * q2_two2[0]) + (q2_two2[1] * q2_two2[1]) + (q2_two2[2] * q2_two2[2]))
 
-                    # if ((qLength2_two + min(max(q2_two2[0],max(q2_two2[1],q2_two2[2])),0.0) - 0.1) < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
+                    if ((qLength2_two + min(max(q2_two2[0],max(q2_two2[1],q2_two2[2])),0.0) - 0.1) < 0):
+                        self.grid_v[I] = [0, 0, 0]
                     ##################################################################
 
     @ti.classkernel

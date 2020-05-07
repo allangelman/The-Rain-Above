@@ -73,8 +73,8 @@ def buffers():
     ti.root.dense(ti.l, max_num_particles).place(particle_x, particle_v)
 
 
-mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 9.0, 5.8],
+mpm = MPMSolver(res=(64, 64, 64), size=15)
+mpm.add_cube(lower_corner=[1, 12.0, 5.8],
              cube_size=[8, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -260,7 +260,7 @@ def GetDist(p, t):
     # capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
     # capsuleDist5 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5]), 0.1)
 
-    box_position = p - ti.Vector([7.0, 8.0, 6.0])
+    box_position = p - ti.Vector([7.0, 11.0, 6.0])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
     boxDist2 = sdf_Box(box_position_rotated, ti.Vector([0.1, 1, 1]), 0.1)
@@ -751,10 +751,10 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 9.0
+                starting_y = 12.0
                 ending_y = 5.0
                 motion_y = -t
-                lookat_starting_y = 9.0
+                lookat_starting_y = 12.0
                 lookat_ending_y = 5.0
                 # motion_y = 0
 
@@ -811,7 +811,7 @@ def paint(t: ti.f32):
                 
                 # alpha4 = 0.5
 
-                
+
                 # if x == 2:
                 #     if cloud_intersection == 1:
                 #         p_cloud = ro + rd * clouddO
