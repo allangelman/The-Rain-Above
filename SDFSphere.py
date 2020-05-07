@@ -11,7 +11,7 @@ ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64, debug=False, print_ir=False)
 # ti.core.toggle_advanced_optimization(False)
 
-n = 10
+n = 8
 m = 20
 hit_sphere = 0
 pixels = ti.Vector(4, dt=ti.f32, shape=(n * 16, n*9))
@@ -70,7 +70,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3.5, 5, 5.8],
+mpm.add_cube(lower_corner=[3.5, 9, 5.8],
              cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -209,17 +209,17 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 @ti.func
 def GetDistCloud(p, t):
     cloud = 0.0
-    cloud = clouds(p, 9.0, 2.5 - ti.sin(t*4.0)*0.25, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud = clouds(p, 9.0, 2.5 - ti.sin(t*4.0)*0.25, -0.4, 0.7, 1.0, 1.25, 0.7, 0.4)
     return cloud
 @ti.func
 def GetDistCloud2(p, t):
     cloud = 0.0
-    cloud = clouds(p, 5.0, 2.7 + ti.sin(t*4.0)*0.25, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud = clouds(p, 5.0, 2.7 + ti.sin(t*4.0)*0.25, -0.8, 0.7, 1.25, 0.9, 0.4, 0.2)
     return cloud
 @ti.func
 def GetDistCloud3(p, t):
     cloud = 0.0
-    cloud = clouds(p, 1.0, 2.2 + ti.cos(t*3.0)*0.25, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = clouds(p, 1.0, 2.2 + ti.cos(t*3.0)*0.25, -0.5, 0.6, 1.0, 1.1, 1.25, 0.6)
     return cloud
 
 @ti.func
@@ -234,29 +234,14 @@ def GetDist(p, t):
     # planeDist = p[1]
     planeDist = planeSDF(p, ti.Vector([0, 0, -1.0/ti.sqrt(101.0), 10.0/ti.sqrt(101.0)]))
     d = 0.0
-    d2 = 0.0
-    cloud = 0.0
-    cloud2 = 0.0
     capsuleDist =0.0
-    cloud_intersection = 0
-    
+    capsuleDist2 = 0.0
     if ti.static(debug): 
-        # d = planeDist
-        # cloud = clouds(p, 5, -0.7, -1, 0.7, 1.25, 0.9, 0.4, 0.2)
-        # cloud = clouds(p, 9, 0.2 - ti.sin(t*4)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
-        capsuleDist = sdf_Capsule(p, ti.Vector([3,0,6]), ti.Vector([4,2,6]), 0.2)
-        # cloud2 = clouds(p, 5, 0, -1.5, 0.7, 1.0, 1.25, 0.7, 0.4)
+       
+        capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
+        capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
         d = min(planeDist, capsuleDist)
-        # d2 = min(planeDist, capsuleDist, cloud)
-        # if cloud<d:
-        #     # print(cloud)
-        #     cloud_intersection = 1
-        # else:
-        #     cloud_intersection = 0
     else:
-        cloud = clouds(p, 5, 2.7 + ti.sin(t*4)*0.25, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
-        cloud2 = clouds(p, 9, 2.5 - ti.sin(t*4)*0.25, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
-        cloud3 = clouds(p, 1, 2.2 + ti.cos(t*3)*0.25, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
 
         capsuleDist = sdf_Capsule(p, ti.Vector([7,7,6]), ti.Vector([9,8,6]), 0.2)
         capsuleDist2 = sdf_Capsule(p, ti.Vector([3,8,6]), ti.Vector([5,7,6]), 0.2)
@@ -270,7 +255,7 @@ def GetDist(p, t):
         box_position_rotated2 = rotate_axis_z(box_position2, rot_mat)
         boxDist2 = sdf_Box(box_position_rotated2, ti.Vector([0.1, 1, 1]), 0.1)
 
-        d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, cloud, cloud2, cloud3)
+        d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2)
 
     # box_position3 = p - ti.Vector([0.7, 0.1, 6])
     # boxDist3 = sdf_Box(box_position3, ti.Vector([2.2, 0.25, 0.25]))
@@ -744,11 +729,11 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 5.0
-                ending_y = 4.0
+                starting_y = 9.0
+                ending_y = 5.0
                 motion_y = -t*2
-                lookat_starting_y = 5.0
-                lookat_ending_y = 4.0
+                lookat_starting_y = 9.0
+                lookat_ending_y = 5.0
                 # motion_y = 0
 
                 ro = ti.Vector([5.0, starting_y , 1.0])

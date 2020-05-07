@@ -184,10 +184,10 @@ class MPMSolver:
                     # if ((grid_pos - (capsule(grid_pos, ti.Vector([3,0,6]), ti.Vector([4,2,6])))).norm() - 0.2 < 0):
                     #     self.grid_v[I] = [0, 0, 0]
                     
-                    # if ((grid_pos - (capsule(grid_pos, ti.Vector([7,7,6]), ti.Vector([9,8,6])))).norm() - 0.2 < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
-                    # if ((grid_pos - (capsule(grid_pos, ti.Vector([3,8,6]), ti.Vector([5,7,6])))).norm() - 0.2 < 0):
-                    #     self.grid_v[I] = [0, 0, 0]
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([7,7,6]), ti.Vector([9,8,6])))).norm() - 0.2 < 0):
+                        self.grid_v[I] = [0, 0, 0]
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([3,8,6]), ti.Vector([5,7,6])))).norm() - 0.2 < 0):
+                        self.grid_v[I] = [0, 0, 0]
                     
                     # box_position = ti.Vector([6, 9, 6])
                     # s = ti.sin(t)
