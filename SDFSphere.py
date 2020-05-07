@@ -74,7 +74,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1, 16, 5.8],
+mpm.add_cube(lower_corner=[1, 9.0, 5.8],
              cube_size=[8, 1, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -250,7 +250,7 @@ def GetDist(p, t):
     rot_mat_static = rotate(0.7)
     # capsule_pos_rotated = rotate_axis_y(p, rot_mat)
 
-    box_position_a = p - ti.Vector([2.5,8.5,6])
+    box_position_a = p - ti.Vector([2.5,8.5,6.0])
     box_position_rotated_a = rotate_axis_y(box_position_a, rot_mat_a)
     boxDist_a1 = sdf_Box(box_position_rotated_a, ti.Vector([0.5, 0.1, 0.1]), 0.1)
     boxDist_a2 = sdf_Box(box_position_rotated_a, ti.Vector([0.1, 0.5, 0.1]), 0.1)
@@ -260,12 +260,12 @@ def GetDist(p, t):
     # capsuleDist4 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.0,6]), ti.Vector([2.0,8.0,6]), 0.1)
     # capsuleDist5 = sdf_Capsule(capsule_pos_rotated, ti.Vector([2.0,7.5,5.5]), ti.Vector([2.0,7.5,6.5]), 0.1)
 
-    box_position = p - ti.Vector([7.0, 11, 6])
+    box_position = p - ti.Vector([7.0, 8.0, 6.0])
     box_position_rotated = rotate_axis_z(box_position, rot_mat)
     boxDist = sdf_Box(box_position_rotated, ti.Vector([1, 0.1, 1]), 0.1)
     boxDist2 = sdf_Box(box_position_rotated, ti.Vector([0.1, 1, 1]), 0.1)
 
-    box_position2 = p - ti.Vector([2.0,12,6])
+    box_position2 = p - ti.Vector([2.0,12.0,6.0])
     box_position_rotated2 = rotate_axis_x(box_position2, rot_mat)
     box_position_rotated2_static = rotate_axis_y(box_position_rotated2, rot_mat_static)
     boxDist3 = sdf_Box(box_position_rotated2_static, ti.Vector([0.3, 0.1, 1]), 0.1)
@@ -751,10 +751,10 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 17.5
+                starting_y = 9.0
                 ending_y = 5.0
                 motion_y = -t
-                lookat_starting_y = 17.5
+                lookat_starting_y = 9.0
                 lookat_ending_y = 5.0
                 # motion_y = 0
 
@@ -810,23 +810,28 @@ def paint(t: ti.f32):
                         pixels[i, j] = pixels[i, j]*alpha2 + ti.Vector([light[0]*0.9, light[1]*0.9, light[2]*0.9, 1.0/(1-alpha2)])*(1-alpha2)
                 
                 # alpha4 = 0.5
-                if x == 2:
-                    if cloud_intersection == 1:
-                        p_cloud = ro + rd * clouddO
-                        light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
-                        # light += light_cloud*0.30
-                        pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud[0]*0.30, light_cloud[1]*0.30, light_cloud[2]*0.30, 1.0])
-                    if cloud_intersection3 == 1:
-                        p_cloud3 = ro + rd * clouddO3
-                        light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
-                        # light += light_cloud3*0.30
-                        pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud3[0]*0.30, light_cloud3[1]*0.30, light_cloud3[2]*0.30, 1.0])
-                    if cloud_intersection2 == 1:
-                        p_cloud2 = ro + rd * clouddO2
-                        light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
-                        # light += light_cloud2*0.30
-                        # pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
-                        pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud2[0]*0.30, light_cloud2[1]*0.30, light_cloud2[2]*0.30, 1.0])
+
+                
+                # if x == 2:
+                #     if cloud_intersection == 1:
+                #         p_cloud = ro + rd * clouddO
+                #         light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
+                #         # light += light_cloud*0.30
+                #         pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud[0]*0.30, light_cloud[1]*0.30, light_cloud[2]*0.30, 1.0])
+                #     if cloud_intersection3 == 1:
+                #         p_cloud3 = ro + rd * clouddO3
+                #         light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
+                #         # light += light_cloud3*0.30
+                #         pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud3[0]*0.30, light_cloud3[1]*0.30, light_cloud3[2]*0.30, 1.0])
+                #     if cloud_intersection2 == 1:
+                #         p_cloud2 = ro + rd * clouddO2
+                #         light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
+                #         # light += light_cloud2*0.30
+                #         # pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
+                #         pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud2[0]*0.30, light_cloud2[1]*0.30, light_cloud2[2]*0.30, 1.0])
+                
+                
+                
                 # rd2 = reflect(rd, normal)
                 # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
                 #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
