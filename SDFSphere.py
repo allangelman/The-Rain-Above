@@ -29,9 +29,9 @@ refractionRatio = 1.0 / REFRACT_INDEX
 distanceFactor = 1.0
 max_num_particles_per_cell = 8192 * 1024
 voxel_has_particle = ti.var(dt=ti.i32)
-cloud_color = ti.Vector([100/255, 244/255, 255/255])
-cloud_color2 = ti.Vector([209/255, 250/255, 10/255])
-cloud_color3 = ti.Vector([225/255, 255/255, 235/255])
+cloud_color = ti.Vector([170/255, 244/255, 255/255])
+cloud_color2 = ti.Vector([209/255, 250/255, 200/255])
+cloud_color3 = ti.Vector([50/255, 255/255, 235/255])
 plane_color = ti.Vector([210/255, 230/255, 249/255])
 particle_color = ti.Vector([107/255, 115/255, 194/255])
 capsule_color = ti.Vector([234/255, 244/255, 100/255])
@@ -70,7 +70,7 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[3.5, 12, 5.8],
+mpm.add_cube(lower_corner=[3.5, 4, 5.8],
              cube_size=[0.5, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
@@ -209,17 +209,17 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 @ti.func
 def GetDistCloud(p, t):
     cloud = 0.0
-    cloud = clouds(p, 9.0, -1.2 - ti.sin(t*4.0)*0.25, -0.3, 0.7, 1.0, 1.25, 0.7, 0.4)
+    cloud = clouds(p, 9.0, 2.5 - ti.sin(t*4.0)*0.25, 2.2, 0.7, 1.0, 1.25, 0.7, 0.4)
     return cloud
 @ti.func
 def GetDistCloud2(p, t):
     cloud = 0.0
-    cloud = clouds(p, 5.0, -1.0 + ti.sin(t*4.0)*0.25, -0.8, 0.7, 1.25, 0.9, 0.4, 0.2)
+    cloud = clouds(p, 5.0, 2.7 + ti.sin(t*4.0)*0.25, -0.4, 0.7, 1.25, 0.9, 0.4, 0.2)
     return cloud
 @ti.func
 def GetDistCloud3(p, t):
     cloud = 0.0
-    cloud = clouds(p, 1.0, -1.2 + ti.cos(t*3.0)*0.25, -0.3, 0.6, 1.0, 1.1, 1.25, 0.6)
+    cloud = clouds(p, 1.0, 2.2 + ti.cos(t*3.0)*0.25, 1.1, 0.6, 1.0, 1.1, 1.25, 0.6)
     return cloud
 
 @ti.func
@@ -744,11 +744,11 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 12.0
-                ending_y = 1.0
+                starting_y = 4.0
+                ending_y = 3.0
                 motion_y = -t*2
-                lookat_starting_y = 12.0
-                lookat_ending_y = 1.0
+                lookat_starting_y = 4.0
+                lookat_ending_y = 3.0
                 # motion_y = 0
 
                 ro = ti.Vector([5.0, starting_y , 1.0])
@@ -803,7 +803,7 @@ def paint(t: ti.f32):
                         pixels[i, j] = pixels[i, j]*alpha2 + ti.Vector([light[0]*0.9, light[1]*0.9, light[2]*0.9, 1.0/(1-alpha2)])*(1-alpha2)
                 
                 # alpha4 = 0.5
-                # if x == 2:
+                if x == 2:
                     # if cloud_intersection == 1:
                     #     p_cloud = ro + rd * clouddO
                     #     light_cloud, normal_cloud = GetLight(p_cloud, t, CLOUD, no, 0, rd)
@@ -812,12 +812,12 @@ def paint(t: ti.f32):
                     #     p_cloud3 = ro + rd * clouddO3
                     #     light_cloud3, normal_cloud3 = GetLight(p_cloud3, t, CLOUD3, no, 0, rd)
                     #     light += light_cloud3*0.30
-                    # if cloud_intersection2 == 1:
-                    #     p_cloud2 = ro + rd * clouddO2
-                    #     light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
-                    #     # light += light_cloud2*0.30
-                    #     # pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
-                    #     pixels[i, j] = ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0])
+                    if cloud_intersection2 == 1:
+                        p_cloud2 = ro + rd * clouddO2
+                        light_cloud2, normal_cloud2 = GetLight(p_cloud2, t, CLOUD2, no, 0, rd)
+                        # light += light_cloud2*0.30
+                        # pixels[i, j] = pixels[i, j]*alpha4 + ti.Vector([light_cloud2[0], light_cloud2[1], light_cloud2[2], 1.0/(1-alpha4)])*(1-alpha4)
+                        pixels[i, j] = pixels[i, j] + ti.Vector([light_cloud2[0]*0.30, light_cloud2[1]*0.30, light_cloud2[2]*0.30, 1.0])
                 # rd2 = reflect(rd, normal)
                 # if (intersection_object != PARTICLES and intersection_object != PLANE and intersection_object != CLOUD):
                 #     d2, no2, intersection_object2 = rayCast_reflection(ro +  normal*.003, rd2, t+(0.03*0), 0.03*0)
