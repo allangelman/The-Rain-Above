@@ -74,8 +74,8 @@ def buffers():
 
 
 mpm = MPMSolver(res=(64, 64, 64), size=10)
-mpm.add_cube(lower_corner=[1.5, 16, 5.8],
-             cube_size=[0.5, 0.5, 0.5],
+mpm.add_cube(lower_corner=[5, 12, 5.8],
+             cube_size=[1, 0.5, 0.5],
              material=MPMSolver.material_water)
 mpm.set_gravity((0, -50, 0))
 np_x, np_v, np_material = mpm.particle_info()
@@ -204,7 +204,7 @@ def clouds(p, x, y, z, bump0, bump1, bump2, bump3, bump4):
 
     sphere0_1_2_3_4 = opSmoothUnion(sphere0_1_2_3, sphereDist4, 0.1)
     
-    box_position3 = p - ti.Vector([1.0+x, 3.2+y, 6.0+z])
+    box_position3 = p - ti.Vector([1.0+x, 3.3+y, 6.0+z])
     boxDist3 = sdf_Box(box_position3, ti.Vector([4.0, 2.0, 0.1]), 0.1)
 
     cloud = max(boxDist3, sphere0_1_2_3_4)
@@ -223,7 +223,7 @@ def GetDistCloud2(p, t):
 @ti.func
 def GetDistCloud3(p, t):
     cloud = 0.0
-    cloud = clouds(p, 1.0, 2.5 + ti.cos(t*0.9)*0.1, -0.5, 0.6, 0.7, 1.2, 0.9, 0.6)
+    cloud = clouds(p, 1.0, 2.6 + ti.cos(t*0.9)*0.1, -0.5, 0.6, 0.65, 1.35, 0.9, 0.6)
     return cloud
 
 @ti.func
@@ -266,9 +266,9 @@ def GetDist(p, t):
 
     box_position2 = p - ti.Vector([2.0,11.5,6])
     box_position_rotated2 = rotate_axis_x(box_position2, rot_mat)
-    # box_position_rotated2_static = rotate_axis_y(box_position_rotated2, rot_mat_static)
-    boxDist3 = sdf_Box(box_position_rotated2, ti.Vector([0.3, 0.1, 1]), 0.1)
-    boxDist4 = sdf_Box(box_position_rotated2, ti.Vector([0.3, 1, 0.1]), 0.1)
+    box_position_rotated2_static = rotate_axis_y(box_position_rotated2, rot_mat_static)
+    boxDist3 = sdf_Box(box_position_rotated2_static, ti.Vector([0.3, 0.1, 1]), 0.1)
+    boxDist4 = sdf_Box(box_position_rotated2_static, ti.Vector([0.3, 1, 0.1]), 0.1)
 
     d = min(planeDist, capsuleDist, capsuleDist2, boxDist, boxDist2, boxDist_a1, boxDist_a2, boxDist_a3, boxDist3, boxDist4)
 
