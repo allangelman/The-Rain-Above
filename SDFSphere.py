@@ -11,7 +11,7 @@ ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64, debug=False, print_ir=False)
 # ti.core.toggle_advanced_optimization(False)
 
-n = 8
+n = 16
 m = 20
 hit_sphere = 0
 pixels = ti.Vector(4, dt=ti.f32, shape=(n * 16, n*9))
@@ -39,8 +39,8 @@ capsule_color2 = ti.Vector([100/255, 189/255, 220/255])
 wheel_color = ti.Vector([50/255, 250/255, 170/255])
 wheel2_color = ti.Vector([70/255, 130/255, 217/255])
 asterick_color = ti.Vector([170/255, 50/255, 250/255])
-sphere1_color = ti.Vector([190/255, 70/255, 240/255])
-sphere2_color = ti.Vector([160/255, 230/255, 15/255])
+sphere1_color = ti.Vector([25/255, 70/255, 240/255])
+sphere2_color = ti.Vector([130/255, 230/255, 135/255])
 # cloud_intersection = 0
 # backgound_color = ti.Vector([0.9, 0.4, 0.6])
 frameTime = 0.03
@@ -246,11 +246,11 @@ def GetDist(p, t):
     # capsuleDist2 = 0.0
     # if ti.static(debug): 
 
-    s0 = ti.Vector([3.5, 11.5, 7.0, 1.5**0.5])
+    s0 = ti.Vector([3.5, 11.5, 7.0, 0.75**0.5])
     s0_d = p - xyz(s0)
     sphereDist0 = length(s0_d) - s0[3]
 
-    s1 = ti.Vector([11.3,8.6,6.5, 0.75**0.5])
+    s1 = ti.Vector([6.5,8.6,6.5, 0.5**0.5])
     s1_d = p - xyz(s1)
     sphereDist1 = length(s1_d) - s1[3]
        
@@ -716,7 +716,7 @@ def getColor(int_ob):
 @ti.func
 def GetLight(p, t, hit, nor, step, rd):
     # lightPos = ti.Vector([0.0 + ti.sin(t), 7.0, 6.0 + ti.cos(t)])
-    lightPos = ti.Vector([0, 35, 1.0])
+    lightPos = ti.Vector([0, 37, 1.0])
 
     l = normalize(lightPos - p)
     n = ti.Vector([0.0, 0.0, 0.0])
@@ -771,10 +771,10 @@ def paint(t: ti.f32):
             for x in range(3):
                 uv = ti.Vector([((i / (16*n)) - 0.5) * (2), (j / (9*n)) - 0.5])
                 
-                starting_y = 16.0
+                starting_y = 17.0
                 ending_y = 5.0
                 motion_y = -t
-                lookat_starting_y = 16.0
+                lookat_starting_y = 17.0
                 lookat_ending_y = 5.0
                 # motion_y = 0
 
