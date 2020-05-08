@@ -184,9 +184,9 @@ class MPMSolver:
                     # if ((grid_pos - (capsule(grid_pos, ti.Vector([3,0,6]), ti.Vector([4,2,6])))).norm() - 0.2 < 0):
                     #     self.grid_v[I] = [0, 0, 0]
                     ###########################################
-                    if ((grid_pos - ti.Vector([3.5, 11.5, 7.0])).norm() - 1.5**0.5 < 0):
+                    if ((grid_pos - ti.Vector([4.5, 12.5, 7.0])).norm() - 0.75**0.5 < 0):
                         self.grid_v[I] = [0, 0, 0]
-                    if ((grid_pos - ti.Vector([6.5,8.6,6.5])).norm() - 0.75**0.5 < 0):
+                    if ((grid_pos - ti.Vector([6.7, 8.1, 6.5])).norm() - 0.3**0.5 < 0):
                         self.grid_v[I] = [0, 0, 0]
                     
                     ###########################################
@@ -194,6 +194,8 @@ class MPMSolver:
                         self.grid_v[I] = [0, 0, 0]
                     if ((grid_pos - (capsule(grid_pos, ti.Vector([3.5,10,6]), ti.Vector([5.5,9,6])))).norm() - 0.2 < 0):
                         self.grid_v[I] = [0, 0, 0]
+                    if ((grid_pos - (capsule(grid_pos, ti.Vector([-1.0,9,6]), ti.Vector([1.5,10.3,6])))).norm() - 0.2 < 0):
+                        self.grid_v[I] = [0, 0, 0]                       
                     ###############################################    
 
                     s = ti.sin(t*0.3)
