@@ -11,7 +11,7 @@ ti.require_version(0, 5, 10)
 ti.init(arch=ti.x64, debug=False, print_ir=False)
 # ti.core.toggle_advanced_optimization(False)
 
-n = 16
+n = 40
 m = 20
 hit_sphere = 0
 pixels = ti.Vector(4, dt=ti.f32, shape=(n * 16, n*9))
